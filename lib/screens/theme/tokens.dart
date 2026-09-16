@@ -417,7 +417,7 @@ class DoodleBorderPainter extends CustomPainter {
 class AppColors {
   AppColors._();
 
-  // Core Monochrome Manga Tokens
+  // Core Monochrome Manga Foundation Tokens
   static const Color ink = Color(0xFF1A1A1A);
   static const Color charcoal = Color(0xFF2A2A2A);
   static const Color darkGray = Color(0xFF424242);
@@ -429,12 +429,18 @@ class AppColors {
   static const Color notebookLine = Color(0xFFE5E5E5);
   static const Color notebookMargin = Color(0xFFCCCCCC);
 
-  // Monochrome Mappings (replacing legacy colored tokens)
-  static const Color comicBlue = ink;
-  static const Color electricCyan = ink;
-  static const Color electricBlue = ink;
-  static const Color neonViolet = darkGray;
-  static const Color comicYellow = ink;
-  static const Color comicRed = darkGray;
+  // Primary Accent Tokens (#FF701A & #671FCF)
+  static const Color primaryAccent = Color(0xFFFF701A); // Vibrant Manga Flame Orange
+  static const Color secondaryAccent = Color(0xFF671FCF); // Deep Energy Electric Violet
+  static const Color accentOrange = primaryAccent;
+  static const Color accentViolet = secondaryAccent;
+
+  // Comic & Semantic Accent Mappings
+  static const Color comicBlue = secondaryAccent;
+  static const Color electricCyan = primaryAccent;
+  static const Color electricBlue = secondaryAccent;
+  static const Color neonViolet = secondaryAccent;
+  static const Color comicYellow = primaryAccent;
+  static const Color comicRed = primaryAccent;
   static const Color comicGreen = sketchGray;
 }

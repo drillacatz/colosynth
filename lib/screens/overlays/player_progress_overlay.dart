@@ -218,8 +218,10 @@ class _PlayerProgressOverlayState extends State<PlayerProgressOverlay> {
       orElse: () => _milestones.first,
     );
 
-    final circleSize = (isWide ? 260.0 : 200.0) * 0.85;
-    final circleTop = isWide ? 150.0 : 130.0;
+    final splatterSize = isWide ? 190.0 : 150.0;
+    final contentTop = isWide ? 120.0 : 90.0;
+    const double xpBarHeight = 36.0;
+    final splatterTotalHeight = splatterSize + xpBarHeight;
 
     return Material(
       color: Colors.transparent,
@@ -235,22 +237,22 @@ class _PlayerProgressOverlayState extends State<PlayerProgressOverlay> {
 
           Positioned(
             right: isWide ? 60 : 16,
-            top: circleTop,
-            child: _LevelXPCircle(
+            top: contentTop,
+            child: _LevelXPSplatter(
               level: widget.level,
               progress: _xpProgress,
               xpInLevel: _xpInLevel,
               xpForNext: _xpForNext,
-              size: circleSize,
+              size: splatterSize,
             )
-                .animate(delay: 300.ms)
+                .animate(delay: 200.ms)
                 .fadeIn(duration: 300.ms)
                 .scale(begin: const Offset(0.8, 0.8)),
           ),
 
           Positioned(
             right: isWide ? 50 : 12,
-            top: circleTop + circleSize + 14,
+            top: contentTop + splatterTotalHeight + 14,
             width: isWide ? 270 : math.min(size.width * 0.46, 210),
             child: _SelectedMilestoneChip(
               milestone: selectedMilestone,
@@ -262,9 +264,33 @@ class _PlayerProgressOverlayState extends State<PlayerProgressOverlay> {
           ),
 
           Positioned(
-            left: 0,
-            top: 50,
-            bottom: 30,
+            left: -20,
+            top: -100,
+            bottom: -100,
+            width: isWide ? 320 : size.width * 0.52,
+            child: Transform.rotate(
+              angle: -30 * math.pi / 180,
+              alignment: Alignment.center,
+              child: const IgnorePointer(
+                child: CustomPaint(
+                  painter: _ParallelDecoStrokePainter(),
+                ),
+              ),
+            )
+                .animate(delay: 80.ms)
+                .fadeIn(duration: 300.ms)
+                .slide(
+                  begin: const Offset(0.25, -0.45),
+                  end: Offset.zero,
+                  duration: 600.ms,
+                  curve: Curves.easeOutCubic,
+                ),
+          ),
+
+          Positioned(
+            left: -20,
+            top: -100,
+            bottom: -100,
             width: isWide ? 320 : size.width * 0.52,
             child: Transform.rotate(
               angle: -30 * math.pi / 180,
@@ -371,7 +397,7 @@ class _PlayerProgressOverlayState extends State<PlayerProgressOverlay> {
                                             color: isUnlocked
                                                 ? AppColors.ink
                                                 : AppColors.ink.withValues(alpha: 0.4),
-                                            width: 2.0,
+                                              width: 2.0,
                                           ),
                                         ),
                                       ),
@@ -400,17 +426,22 @@ class _PlayerProgressOverlayState extends State<PlayerProgressOverlay> {
               ),
             ),
           )
-              .animate(delay: 300.ms)
+              .animate()
               .fadeIn(duration: 300.ms)
-              .slideY(begin: 0.1, end: 0),
+              .slide(
+                begin: const Offset(-0.25, 0.45),
+                end: Offset.zero,
+                duration: 600.ms,
+                curve: Curves.easeOutCubic,
+              ),
         ],
       ),
     );
   }
 }
 
-class _LevelXPCircle extends StatelessWidget {
-  const _LevelXPCircle({
+class _LevelXPSplatter extends StatelessWidget {
+  const _LevelXPSplatter({
     required this.level,
     required this.progress,
     required this.xpInLevel,
@@ -426,91 +457,96 @@ class _LevelXPCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: size - 10,
-            height: size - 10,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.comicYellow.withValues(alpha: 0.15),
-                  blurRadius: 15,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: size - 15,
-            height: size - 15,
-            decoration: BoxDecoration(
-              color: AppColors.paperWhite,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.ink,
-                width: 2.0,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: size - 25,
-            height: size - 25,
-            child: CircularProgressIndicator(
-              value: progress,
-              strokeWidth: 13.5,
-              backgroundColor: AppColors.ink.withValues(alpha: 0.05),
-              valueColor: const AlwaysStoppedAnimation(AppColors.comicYellow),
-              strokeCap: StrokeCap.round,
-            ),
-          ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: size,
+          height: size,
+          child: Stack(
+            alignment: Alignment.center,
             children: [
-              Text(
-                'LEVEL',
-                style: TextStyle(
-                  fontFamily: 'Bangers',
-                  fontSize: size * 0.08,
-                  color: AppColors.ink.withValues(alpha: 0.4),
-                  letterSpacing: 1.0,
-                ),
+              Image.asset(
+                'assets/images/ink_splatter.png',
+                width: size,
+                height: size,
+                fit: BoxFit.contain,
               ),
-              Text(
-                '$level',
-                style: TextStyle(
-                  fontFamily: 'Bangers',
-                  fontSize: size * 0.32,
-                  color: AppColors.ink,
-                  height: 0.9,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                decoration: BoxDecoration(
-                  color: AppColors.ink,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-                child: Text(
-                  level >= ProgressionService.maxLevel
-                      ? 'MAX XP'
-                      : '$xpInLevel / $xpForNext',
-                  style: TextStyle(
-                    fontFamily: 'Bangers',
-                    fontSize: size * 0.07,
-                    color: Colors.white,
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'LEVEL',
+                    style: TextStyle(
+                      fontFamily: 'Bangers',
+                      fontSize: size * 0.09,
+                      color: Colors.white70,
+                      letterSpacing: 2.0,
+                    ),
                   ),
+                  Text(
+                    '$level',
+                    style: TextStyle(
+                      fontFamily: 'Bangers',
+                      fontSize: size * 0.32,
+                      color: Colors.white,
+                      height: 0.9,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: size * 0.85,
+          child: Column(
+            children: [
+              Container(
+                height: 12,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEEEEE),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.ink, width: 2),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: AppColors.ink,
+                      offset: Offset(1.5, 1.5),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Stack(
+                    children: [
+                      FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: progress.clamp(0.0, 1.0),
+                        child: Container(
+                          color: AppColors.comicYellow,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                level >= ProgressionService.maxLevel
+                    ? 'MAX XP'
+                    : '$xpInLevel / $xpForNext XP',
+                style: const TextStyle(
+                  fontFamily: 'Bangers',
+                  fontSize: 11,
+                  letterSpacing: 1.0,
+                  color: Colors.white,
                 ),
               ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -722,5 +758,30 @@ class _RewardPill extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ParallelDecoStrokePainter extends CustomPainter {
+  const _ParallelDecoStrokePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double roadmapCenterX = size.width / 2;
+    final double strokeX = roadmapCenterX + 100.0;
+
+    final paint = Paint()
+      ..color = AppColors.comicYellow.withValues(alpha: 0.35)
+      ..strokeWidth = 30.0
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawLine(
+      Offset(strokeX, -200),
+      Offset(strokeX, size.height + 200),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 

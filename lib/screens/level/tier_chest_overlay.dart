@@ -6,11 +6,81 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:colosynth/providers/tournament_provider.dart';
 import 'package:colosynth/providers/tier_chest_provider.dart';
-
+import 'package:colosynth/screens/theme/tokens.dart';
+import 'package:colosynth/screens/theme/background.dart';
+import 'package:colosynth/screens/overlays/claim_reward_overlay.dart';
 
 class TierChestOverlay extends ConsumerWidget {
   const TierChestOverlay({
     super.key,
+    required this.tier,
+    required this.tournamentName,
+  });
+
+  final int tier;
+  final String tournamentName;
+
+  static Future<void> show(
+    BuildContext context, {
+    required int tier,
+    required String tournamentName,
+  }) {
+    HapticFeedback.lightImpact();
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
+      builder: (_) => TierChestOverlay(
+        tier: tier,
+        tournamentName: tournamentName,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final size = MediaQuery.sizeOf(context);
+    final maxHeight = size.height * 0.85;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: 480,
+          maxHeight: maxHeight,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.paperWhite,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.ink, width: 3.5),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.ink.withValues(alpha: 0.4),
+              blurRadius: 0,
+              offset: const Offset(6, 6),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Stack(
+            children: [
+              const Positioned.fill(child: NotebookBackground()),
+              _TierChestContent(
+                tier: tier,
+                tournamentName: tournamentName,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TierChestContent extends ConsumerWidget {
+  const _TierChestContent({
     required this.tier,
     required this.tournamentName,
   });
@@ -24,122 +94,195 @@ class TierChestOverlay extends ConsumerWidget {
     final chestState = ref.watch(tierChestProvider(tier));
     final rewards = milestoneRewardsForTier(tier);
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF100700),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(
-          top: BorderSide(color: Color(0xFF3D2200), width: 1.5),
-          left: BorderSide(color: Color(0xFF3D2200), width: 1),
-          right: BorderSide(color: Color(0xFF3D2200), width: 1),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFF5A3000).withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 20),
+    int claimableCount = 0;
+    for (int r = 0; r < 6; r++) {
+      if (!chestState.claimed[r] && isMilestoneCleared(tier, r, progress)) {
+        claimableCount++;
+      }
+    }
 
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Icon(Icons.inventory_2_outlined,
-                    color: Color(0xFF00E5FF), size: 26),
-                const SizedBox(width: 10),
-                Column(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 16, 10),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.comicYellow,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.ink, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.ink.withValues(alpha: 0.25),
+                      offset: const Offset(2, 2),
+                      blurRadius: 0,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.inventory_2_outlined,
+                  color: AppColors.ink,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'TIER $tier REWARDS',
                       style: const TextStyle(
                         fontFamily: 'Bangers',
-                        fontSize: 20,
-                        letterSpacing: 4,
-                        color: Color(0xFF00E5FF),
+                        fontSize: 22,
+                        letterSpacing: 2.5,
+                        color: AppColors.ink,
+                        height: 1.0,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
-                      tournamentName,
-                      style: TextStyle(
+                      tournamentName.toUpperCase(),
+                      style: const TextStyle(
+                        fontFamily: 'Bangers',
                         fontSize: 11,
                         letterSpacing: 1.5,
-                        color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
+                        color: AppColors.sketchGray,
                       ),
                     ),
                   ],
                 ),
-                const Spacer(),
-                if (chestState.allClaimed)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+              ),
+              if (claimableCount > 1) ...[
+                GestureDetector(
+                  onTap: () async {
+                    ComicButton.playButtonSfx();
+                    unawaited(HapticFeedback.mediumImpact());
+                    int totalInk = 0;
+                    int totalPaint = 0;
+                    int totalXp = 0;
+                    for (int r = 0; r < 6; r++) {
+                      if (!chestState.claimed[r] &&
+                          isMilestoneCleared(tier, r, progress)) {
+                        final rew = rewards[r];
+                        totalInk += rew.ink;
+                        totalPaint += rew.paint;
+                        totalXp += rew.accountXp;
+                        await ref
+                            .read(tierChestProvider(tier).notifier)
+                            .claim(r);
+                      }
+                    }
+                    if (context.mounted && (totalInk > 0 || totalPaint > 0)) {
+                      await ClaimRewardOverlay.show(
+                        context,
+                        inkReward: totalInk,
+                        paintReward: totalPaint,
+                        xpReward: totalXp,
+                      );
+                    }
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                          color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
-                          width: 1),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.check_circle_outline,
-                            size: 12, color: Color(0xFF4CAF50)),
-                        SizedBox(width: 4),
-                        Text(
-                          'ALL CLAIMED',
-                          style: TextStyle(
-                            fontFamily: 'Bangers',
-                            fontSize: 10,
-                            letterSpacing: 2,
-                            color: Color(0xFF4CAF50),
-                          ),
+                      color: AppColors.comicYellow,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.ink, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.ink.withValues(alpha: 0.3),
+                          offset: const Offset(1.5, 1.5),
+                          blurRadius: 0,
                         ),
                       ],
                     ),
+                    child: Text(
+                      'CLAIM ALL ($claimableCount)',
+                      style: const TextStyle(
+                        fontFamily: 'Bangers',
+                        fontSize: 11,
+                        letterSpacing: 1.0,
+                        color: AppColors.ink,
+                      ),
+                    ),
                   ),
+                ),
               ],
-            ),
+              GestureDetector(
+                onTap: () {
+                  ComicButton.playButtonSfx();
+                  Navigator.of(context).pop();
+                },
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.comicRed,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.ink, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.ink.withValues(alpha: 0.3),
+                        offset: const Offset(1.5, 1.5),
+                        blurRadius: 0,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.close, color: Colors.white, size: 18),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-
-          const Divider(color: Color(0xFF3D2200), height: 1),
-          const SizedBox(height: 4),
-
-          ...List.generate(6, (row) {
-            final cleared = isMilestoneCleared(tier, row, progress);
-            final claimed = chestState.claimed[row];
-            final reward = rewards[row];
-            return _MilestoneRow(
-              row: row,
-              tier: tier,
-              progress: progress,
-              cleared: cleared,
-              claimed: claimed,
-              reward: reward,
-              onClaim: () async {
-                unawaited(HapticFeedback.mediumImpact());
-                await ref.read(tierChestProvider(tier).notifier).claim(row);
-              },
-            )
-                .animate(delay: Duration(milliseconds: 60 + row * 50))
-                .fadeIn(duration: 220.ms)
-                .slideX(begin: 0.03, end: 0);
-          }),
-
-          SizedBox(height: MediaQuery.paddingOf(context).bottom + 20),
-        ],
-      ),
+        ),
+        Divider(
+          color: AppColors.ink.withValues(alpha: 0.12),
+          height: 1,
+          thickness: 1.5,
+        ),
+        Flexible(
+          child: ListView.builder(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+            itemCount: 6,
+            itemBuilder: (context, row) {
+              final cleared = isMilestoneCleared(tier, row, progress);
+              final claimed = chestState.claimed[row];
+              final reward = rewards[row];
+              return _MilestoneRow(
+                row: row,
+                tier: tier,
+                progress: progress,
+                cleared: cleared,
+                claimed: claimed,
+                reward: reward,
+                onClaim: () async {
+                  ComicButton.playButtonSfx();
+                  unawaited(HapticFeedback.mediumImpact());
+                  await ref.read(tierChestProvider(tier).notifier).claim(row);
+                  if (context.mounted &&
+                      (reward.ink > 0 || reward.paint > 0)) {
+                    await ClaimRewardOverlay.show(
+                      context,
+                      inkReward: reward.ink,
+                      paintReward: reward.paint,
+                      xpReward: reward.accountXp,
+                    );
+                  }
+                },
+              )
+                  .animate(delay: Duration(milliseconds: 30 + row * 40))
+                  .fadeIn(duration: 200.ms)
+                  .slideY(begin: 0.05, end: 0);
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -207,40 +350,51 @@ class _MilestoneRow extends StatelessWidget {
     final Color rowBg;
     final Color leftBorder;
     if (claimed) {
-      rowBg = const Color(0xFF0F1A06);
+      rowBg = const Color(0xFFF3F3F3);
       leftBorder = const Color(0xFF4CAF50);
     } else if (cleared) {
-      rowBg = const Color(0xFF1A0D00);
-      leftBorder = const Color(0xFF00E5FF);
+      rowBg = AppColors.paperWhite;
+      leftBorder = AppColors.comicYellow;
     } else {
-      rowBg = Colors.transparent;
-      leftBorder = const Color(0xFF3D2200);
+      rowBg = AppColors.paperWhite;
+      leftBorder = AppColors.sketchGray.withValues(alpha: 0.5);
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: rowBg,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-            color: leftBorder.withValues(alpha: 0.35), width: 1),
+          color: claimed
+              ? AppColors.ink.withValues(alpha: 0.25)
+              : AppColors.ink,
+          width: 1.8,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: claimed ? 0.15 : 0.4),
+            offset: const Offset(2, 2),
+            blurRadius: 0,
+          ),
+        ],
       ),
       child: IntrinsicHeight(
         child: Row(
           children: [
             Container(
-              width: 3,
+              width: 5,
               decoration: BoxDecoration(
                 color: leftBorder,
                 borderRadius: const BorderRadius.horizontal(
-                    left: Radius.circular(8)),
+                  left: Radius.circular(6),
+                ),
               ),
             ),
-
             Expanded(
               child: Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -249,39 +403,43 @@ class _MilestoneRow extends StatelessWidget {
                         if (isBossRow)
                           const Padding(
                             padding: EdgeInsets.only(right: 5),
-                            child: Icon(Icons.whatshot,
-                                size: 11, color: Color(0xFFFF6B35)),
+                            child: Icon(
+                              Icons.whatshot,
+                              size: 13,
+                              color: AppColors.comicRed,
+                            ),
                           ),
                         Expanded(
                           child: Text(
                             milestoneLabel(row),
                             style: TextStyle(
                               fontFamily: 'Bangers',
-                              fontSize: 12,
-                              letterSpacing: 1.5,
+                              fontSize: 12.5,
+                              letterSpacing: 1.2,
                               color: claimed
-                                  ? const Color(0xFF4CAF50)
-                                  : cleared
-                                      ? const Color(0xFF00E5FF)
-                                      : Colors.white.withValues(alpha: 0.55),
+                                  ? AppColors.sketchGray
+                                  : AppColors.ink,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 5),
                     if (claimed)
                       const Row(
                         children: [
-                          Icon(Icons.check_circle,
-                              size: 12, color: Color(0xFF4CAF50)),
+                          Icon(
+                            Icons.check_circle,
+                            size: 13,
+                            color: Color(0xFF4CAF50),
+                          ),
                           SizedBox(width: 4),
                           Text(
                             'CLAIMED',
                             style: TextStyle(
                               fontFamily: 'Bangers',
-                              fontSize: 10,
-                              letterSpacing: 2,
+                              fontSize: 10.5,
+                              letterSpacing: 1.5,
                               color: Color(0xFF4CAF50),
                             ),
                           ),
@@ -293,9 +451,8 @@ class _MilestoneRow extends StatelessWidget {
                 ),
               ),
             ),
-
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -303,33 +460,32 @@ class _MilestoneRow extends StatelessWidget {
                   if (reward.ink > 0)
                     _RewardChip(
                       icon: Icons.water_drop_outlined,
-                      color: const Color(0xFF90CAF9),
+                      color: const Color(0xFF1976D2),
                       label: _fmt(reward.ink),
                     ),
                   if (reward.paint > 0)
                     _RewardChip(
                       icon: Icons.palette_outlined,
-                      color: const Color(0xFF00E5FF),
+                      color: const Color(0xFF0097A7),
                       label: '+${reward.paint}P',
                     ),
                   if (reward.accountXp > 0)
                     _RewardChip(
                       icon: Icons.stars_outlined,
-                      color: const Color(0xFFCE93D8),
+                      color: const Color(0xFF8E24AA),
                       label: '+${reward.accountXp}XP',
                     ),
                   if (reward.expItemKey != null && reward.expItemCount > 0)
                     _RewardChip(
                       icon: Icons.science_outlined,
-                      color: const Color(0xFF80CBC4),
+                      color: const Color(0xFFD84315),
                       label: '×${reward.expItemCount}',
                     ),
                 ],
               ),
             ),
-
             Padding(
-              padding: const EdgeInsets.only(right: 12, left: 4),
+              padding: const EdgeInsets.only(right: 10, left: 2),
               child: _ClaimButton(
                 cleared: cleared,
                 claimed: claimed,
@@ -348,7 +504,6 @@ class _MilestoneRow extends StatelessWidget {
   }
 }
 
-
 class _ProgressDots extends StatelessWidget {
   const _ProgressDots({required this.met, required this.total});
   final int met;
@@ -361,15 +516,19 @@ class _ProgressDots extends StatelessWidget {
         ...List.generate(total, (i) {
           final done = i < met;
           return Padding(
-            padding: const EdgeInsets.only(right: 5),
+            padding: const EdgeInsets.only(right: 4),
             child: Container(
-              width: done ? 18 : 14,
-              height: 5,
+              width: done ? 16 : 12,
+              height: 6,
               decoration: BoxDecoration(
-                color: done
-                    ? const Color(0xFF00E5FF)
-                    : Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(2.5),
+                color: done ? AppColors.ink : const Color(0xFFE0E0E0),
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(
+                  color: done
+                      ? AppColors.ink
+                      : AppColors.ink.withValues(alpha: 0.25),
+                  width: 1,
+                ),
               ),
             ),
           );
@@ -377,16 +536,17 @@ class _ProgressDots extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           '$met/$total',
-          style: TextStyle(
+          style: const TextStyle(
+            fontFamily: 'Bangers',
             fontSize: 10,
-            color: Colors.white.withValues(alpha: 0.4),
+            letterSpacing: 0.8,
+            color: AppColors.sketchGray,
           ),
         ),
       ],
     );
   }
 }
-
 
 class _RewardChip extends StatelessWidget {
   const _RewardChip({
@@ -401,19 +561,25 @@ class _RewardChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 1),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: color),
+          Icon(icon, size: 10.5, color: color),
           const SizedBox(width: 3),
           Text(
             label,
             style: TextStyle(
               fontFamily: 'Bangers',
-              fontSize: 11,
-              letterSpacing: 1,
+              fontSize: 10,
+              letterSpacing: 0.8,
               color: color,
             ),
           ),
@@ -422,7 +588,6 @@ class _RewardChip extends StatelessWidget {
     );
   }
 }
-
 
 class _ClaimButton extends StatefulWidget {
   const _ClaimButton({
@@ -445,46 +610,85 @@ class _ClaimButtonState extends State<_ClaimButton> {
   @override
   Widget build(BuildContext context) {
     if (widget.claimed) {
-      return const Icon(Icons.check_circle,
-          size: 22, color: Color(0xFF4CAF50));
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(color: const Color(0xFF81C784), width: 1.2),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check, color: Color(0xFF388E3C), size: 12),
+            SizedBox(width: 2),
+            Text(
+              'DONE',
+              style: TextStyle(
+                fontFamily: 'Bangers',
+                fontSize: 10,
+                letterSpacing: 1,
+                color: Color(0xFF388E3C),
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
-    final active = widget.cleared;
-    final bg = active ? const Color(0xFF00E5FF) : Colors.white.withValues(alpha: 0.06);
-    final textCol = active ? const Color(0xFF1A1A1A) : Colors.white.withValues(alpha: 0.25);
-    final borderCol = active ? const Color(0xFF1A1A1A).withValues(alpha: 0.35) : Colors.white.withValues(alpha: 0.08);
+    if (!widget.cleared) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(
+            color: AppColors.ink.withValues(alpha: 0.25),
+            width: 1.2,
+          ),
+        ),
+        child: const Text(
+          'LOCKED',
+          style: TextStyle(
+            fontFamily: 'Bangers',
+            fontSize: 10,
+            letterSpacing: 1,
+            color: AppColors.sketchGray,
+          ),
+        ),
+      );
+    }
 
     return GestureDetector(
-      onTapDown: active ? (_) => setState(() => _pressed = true) : null,
-      onTapUp: active ? (_) => setState(() => _pressed = false) : null,
-      onTapCancel: active ? () => setState(() => _pressed = false) : null,
-      onTap: active ? widget.onTap : null,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedScale(
-        scale: _pressed ? 0.93 : 1.0,
-        duration: const Duration(milliseconds: 80),
+        scale: _pressed ? 0.92 : 1.0,
+        duration: const Duration(milliseconds: 70),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: borderCol, width: 1.2),
-            boxShadow: active
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF00E5FF).withValues(alpha: 0.25),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
+            color: AppColors.comicYellow,
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(color: AppColors.ink, width: 1.8),
+            boxShadow: const [
+              BoxShadow(
+                color: AppColors.ink,
+                offset: Offset(1.5, 1.5),
+              ),
+            ],
           ),
-          child: Text(
+          child: const Text(
             'CLAIM',
             style: TextStyle(
               fontFamily: 'Bangers',
-              fontSize: 12,
-              letterSpacing: 2.5,
-              color: textCol,
+              fontSize: 11,
+              letterSpacing: 1.2,
+              color: AppColors.ink,
             ),
           ),
         ),

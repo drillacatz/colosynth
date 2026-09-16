@@ -58,8 +58,8 @@ class IapService {
   }
 
   Future<void> _doInit() async {
-    if (_apiKey.isEmpty) {
-      _log('REVENUECAT_GOOGLE_API_KEY not set — skipping.');
+    if (_apiKey.isEmpty || _apiKey.startsWith('YOUR_')) {
+      _log('REVENUECAT_GOOGLE_API_KEY not set or placeholder — skipping.');
       return;
     }
     try {

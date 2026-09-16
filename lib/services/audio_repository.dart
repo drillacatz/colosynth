@@ -101,6 +101,7 @@ abstract final class AudioRepository {
     SfxEvent.defeat: 'defeat.wav',
     SfxEvent.reward: 'reward.wav',
     SfxEvent.combo: 'hit.mp3',
+    SfxEvent.splashInk: 'splash_ink.wav',
   };
 
   /// Set of verified audio assets physically present on disk.
@@ -118,6 +119,7 @@ abstract final class AudioRepository {
     'ready_screen.wav',
     'skill_done.mp3',
     'splash.mp3',
+    'splash_ink.wav',
     'title.mp3',
     'undefined.wav',
   };
@@ -134,6 +136,7 @@ abstract final class AudioRepository {
     SfxEvent.defeat: 'undefined.wav',
     SfxEvent.reward: 'skill_done.mp3',
     SfxEvent.combo: 'parry3.mp3',
+    SfxEvent.splashInk: 'splash_ink.wav',
   };
 
   /// Resolves the audio file to load for an SFX event, using an available bundled asset fallback.
@@ -160,6 +163,7 @@ abstract final class AudioRepository {
     SfxEvent.defeat: 1,
     SfxEvent.reward: 1,
     SfxEvent.combo: 2,
+    SfxEvent.splashInk: 2,
   };
 
 

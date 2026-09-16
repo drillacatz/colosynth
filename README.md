@@ -37,7 +37,7 @@ This project was built for the RevenueCat Shipaton 2026 hackathon (Next Gen Awar
 - Android Studio or Visual Studio Code with the Flutter extension
 - Android SDK (API 34 or higher recommended)
 
-### Installation and Run
+### Installation and Run (Quick Start for Reviewers & Judges)
 
 1. Clone the repository:
    ```bash
@@ -50,14 +50,26 @@ This project was built for the RevenueCat Shipaton 2026 hackathon (Next Gen Awar
    flutter pub get
    ```
 
-3. Configure environment and services:
-   Copy configuration templates and populate values as needed:
+3. Launch the application:
+   The repository includes a ready-to-run mock environment template (`env.dart-define.example`) and automated Google Services fallback. Reviewers can launch directly in offline development mode without external API keys:
    ```bash
-   cp env.dart-define.example env.dart-define
-   cp android/app/google-services.json.example android/app/google-services.json
+   flutter run --dart-define-from-file=env.dart-define.example
+   ```
+   Or run the automated test suite:
+   ```bash
+   flutter test --dart-define-from-file=env.dart-define.example
    ```
 
-4. Launch the application:
+### Custom Configuration (For Production & Live Services)
+
+To connect your own live Firebase, AdMob, or RevenueCat projects:
+1. Create a local environment file:
+   ```bash
+   cp env.dart-define.example env.dart-define
+   ```
+2. Populate your live API credentials into `env.dart-define` (this file is gitignored and will remain local).
+3. Place your active `google-services.json` into `android/app/` (also gitignored).
+4. Run:
    ```bash
    flutter run --dart-define-from-file=env.dart-define
    ```

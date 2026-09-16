@@ -17,6 +17,7 @@ import 'package:colosynth/services/save_manager.dart';
 import 'package:colosynth/services/audio_service.dart';
 import 'package:colosynth/services/app_initializer.dart';
 import 'package:colosynth/screens/theme/tokens.dart';
+import 'package:colosynth/tools/ui_studio_screen.dart';
 import 'package:colosynth/utils/app_logger.dart';
 
 class RootApp extends ConsumerStatefulWidget {
@@ -97,6 +98,8 @@ class _RootAppState extends ConsumerState<RootApp> {
       debugShowCheckedModeBanner: false,
       theme: _appTheme,
       home: _buildHome(),
+      builder: (context, child) =>
+          child != null ? UiStudioBubble(child: child) : const SizedBox.shrink(),
       onUnknownRoute: (_) => _instantRoute(const HomeScreen()),
     );
   }
@@ -126,7 +129,8 @@ class _RootAppState extends ConsumerState<RootApp> {
 
   static ThemeData _buildTheme() {
     const primaryColor = AppColors.ink;
-    const secondaryColor = AppColors.charcoal;
+    const secondaryColor = AppColors.primaryAccent;
+    const tertiaryColor = AppColors.secondaryAccent;
     const paperColor = AppColors.paperWhite;
     const inkColor = AppColors.ink;
     const brightness = Brightness.light;
@@ -153,10 +157,12 @@ class _RootAppState extends ConsumerState<RootApp> {
         brightness: brightness,
         primary: primaryColor,
         secondary: secondaryColor,
+        tertiary: tertiaryColor,
         surface: paperColor,
         error: Colors.red,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
+        onTertiary: Colors.white,
         onSurface: inkColor,
         onError: Colors.white,
       ),

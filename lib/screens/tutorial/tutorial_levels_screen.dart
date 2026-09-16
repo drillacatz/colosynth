@@ -116,7 +116,7 @@ class _TutorialLevelsScreenState extends ConsumerState<TutorialLevelsScreen> {
                 children: [
                   const SizedBox(height: 52),
                   _buildHeader(context),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(
@@ -174,28 +174,15 @@ class _TutorialLevelsScreenState extends ConsumerState<TutorialLevelsScreen> {
             ),
           ),
           const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'TRAINING GROUNDS',
-                  style: TextStyle(
-                    fontFamily: 'Bangers',
-                    fontSize: 28,
-                    color: AppColors.ink,
-                    letterSpacing: 5,
-                  ),
-                ),
-                Text(
-                  'Master the brush strokes to enter the tournaments',
-                  style: TextStyle(
-                    color: AppColors.ink.withValues(alpha: 0.6),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+          const Expanded(
+            child: Text(
+              'TRAINING GROUNDS',
+              style: TextStyle(
+                fontFamily: 'Bangers',
+                fontSize: 26,
+                color: AppColors.ink,
+                letterSpacing: 4,
+              ),
             ),
           ),
         ],

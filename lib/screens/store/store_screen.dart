@@ -4,9 +4,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:colosynth/game_data/store_data.dart';
+import 'package:colosynth/game_settings.dart';
 import 'package:colosynth/providers/service_providers.dart';
 import 'package:colosynth/providers/store_provider.dart';
 import 'package:colosynth/providers/navigation_provider.dart';
+import 'package:colosynth/services/audio_service.dart';
 import 'package:colosynth/services/iap_service.dart';
 import 'package:colosynth/screens/store/daily_free_section.dart';
 import 'package:colosynth/screens/store/ink_shop_section.dart';
@@ -15,7 +17,6 @@ import 'package:colosynth/screens/store/restore_button.dart';
 import 'package:colosynth/screens/store/recruit_tab_screen.dart';
 import 'package:colosynth/screens/store/exp_shop_section.dart';
 import 'package:colosynth/screens/store/synth_shop_section.dart';
-import 'package:colosynth/screens/theme/tokens.dart';
 import 'package:colosynth/guide/guide_anchor.dart';
 
 const double _kSlant = 30.0;
@@ -292,7 +293,7 @@ class _AdRemoverRow extends StatelessWidget {
   }
 }
 
-class _StoreTabBar extends StatelessWidget {
+class _StoreTabBar extends StatefulWidget {
   const _StoreTabBar({
     required this.activeTab,
     required this.onTabChanged,
@@ -302,26 +303,85 @@ class _StoreTabBar extends StatelessWidget {
   final ValueChanged<int> onTabChanged;
 
   @override
+  State<_StoreTabBar> createState() => _StoreTabBarState();
+}
+
+class _StoreTabBarState extends State<_StoreTabBar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animCtrl;
+  late final Animation<double> _scaleAnim;
+  late final Animation<double> _opacityAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+      value: 1.0,
+    );
+    _scaleAnim = Tween<double>(begin: 2.2, end: 1.0).animate(
+      CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutBack),
+    );
+    _opacityAnim = Tween<double>(begin: 0.35, end: 1.0).animate(
+      CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutQuad),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _StoreTabBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activeTab != widget.activeTab) {
+      _animCtrl.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _animCtrl.dispose();
+    super.dispose();
+  }
+
+  void _handleTabTap(int index) {
+    if (index != widget.activeTab) {
+      AudioService.instance.playSfx(SfxEvent.splashInk);
+      widget.onTabChanged(index);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
       child: SizedBox(
         height: 48,
         child: Stack(
+          clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
-            AnimatedAlign(
-              alignment:
-                  activeTab == 0 ? Alignment.centerLeft : Alignment.centerRight,
-              duration: const Duration(milliseconds: 280),
-              curve: Curves.easeOutCubic,
+            Align(
+              alignment: widget.activeTab == 0
+                  ? Alignment.centerLeft
+                  : Alignment.centerRight,
               child: FractionallySizedBox(
-                widthFactor: 0.48,
-                heightFactor: 0.9,
-                child: Image.asset(
-                  'assets/images/t1.png',
-                  fit: BoxFit.fill,
-                  opacity: const AlwaysStoppedAnimation(0.85),
+                widthFactor: 0.50,
+                heightFactor: 1.15,
+                child: AnimatedBuilder(
+                  animation: _animCtrl,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: _scaleAnim.value,
+                      alignment: Alignment.center,
+                      child: Opacity(
+                        opacity: _opacityAnim.value.clamp(0.0, 1.0),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Image.asset(
+                    'assets/images/brush_stroke.png',
+                    fit: BoxFit.fill,
+                  ),
                 ),
               ),
             ),
@@ -330,17 +390,17 @@ class _StoreTabBar extends StatelessWidget {
                 Expanded(
                   child: _TabButton(
                     label: 'ITEM',
-                    isSelected: activeTab == 0,
+                    isSelected: widget.activeTab == 0,
                     activeColor: Colors.white,
-                    onTap: () => onTabChanged(0),
+                    onTap: () => _handleTabTap(0),
                   ),
                 ),
                 Expanded(
                   child: _TabButton(
                     label: 'RECRUIT',
-                    isSelected: activeTab == 1,
+                    isSelected: widget.activeTab == 1,
                     activeColor: Colors.white,
-                    onTap: () => onTabChanged(1),
+                    onTap: () => _handleTabTap(1),
                   ),
                 ),
               ],
@@ -369,10 +429,7 @@ class _TabButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {
-        ComicButton.playButtonSfx();
-        onTap();
-      },
+      onTap: onTap,
       child: Center(
         child: AnimatedScale(
           scale: isSelected ? 1.08 : 0.94,
@@ -411,45 +468,10 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
   final _expSectionKey = GlobalKey();
   final _paintSectionKey = GlobalKey();
   final _synthSectionKey = GlobalKey();
-  bool _showFloatingFreeInk = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollCtrl.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    if (!_scrollCtrl.hasClients) return;
-    final shouldShow = _scrollCtrl.offset > 320;
-    if (shouldShow != _showFloatingFreeInk) {
-      setState(() => _showFloatingFreeInk = shouldShow);
-    }
-  }
-
   @override
   void dispose() {
-    _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
     super.dispose();
-  }
-
-  void _scrollToDailyFree() {
-    ComicButton.playButtonSfx();
-    final ctx = _dailySectionKey.currentContext;
-    if (ctx != null) {
-      Scrollable.ensureVisible(
-        ctx,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
-    } else if (_scrollCtrl.hasClients) {
-      _scrollCtrl.animateTo(
-        350,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
-    }
   }
 
   void _maybeScrollToSection(StoreSection section) {
@@ -578,11 +600,6 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
 
     final prices = ref.watch(iapPricesProvider).value ?? {};
     final isSelected = ref.watch(navigationProvider) == 0;
-    final dailyInk = ref.watch(dailyInkProvider).value;
-    final isAdFree = ref.watch(adFreeProvider).value ?? false;
-    final hasClaimableDailyInk = dailyInk != null &&
-        dailyInk.slots.isNotEmpty &&
-        (!dailyInk.slots[0].claimed || (isAdFree && !dailyInk.allClaimed));
 
     return Column(
       children: [
@@ -711,51 +728,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
                       ),
                     ],
                   ),
-                  Positioned(
-                    bottom: 20,
-                    right: 18,
-                    child: AnimatedScale(
-                      scale: (_showFloatingFreeInk && hasClaimableDailyInk) ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeOutBack,
-                      child: GestureDetector(
-                        onTap: _scrollToDailyFree,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF00E5FF),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.ink, width: 2.5),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: AppColors.ink,
-                                offset: Offset(2, 3),
-                                blurRadius: 0,
-                              ),
-                            ],
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.card_giftcard, size: 16, color: Color(0xFF141414)),
-                              SizedBox(width: 6),
-                              Text(
-                                'FREE INK',
-                                style: TextStyle(
-                                  fontFamily: 'Bangers',
-                                  fontSize: 14,
-                                  letterSpacing: 1.2,
-                                  color: Color(0xFF141414),
-                                ),
-                              ),
-                              SizedBox(width: 4),
-                              Icon(Icons.arrow_upward_rounded, size: 14, color: Color(0xFF141414)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+
                 ],
               ),
               const RecruitTabScreen(),

@@ -120,6 +120,8 @@ class _TournamentLayoutState extends ConsumerState<_TournamentLayout>
 
   double _scroll = 0.0;
   double _halfStep = 100.0;
+  int _lastSelectedIndex = 0;
+  bool _isMovingForward = true;
 
   late final AnimationController _snapCtrl;
   Animation<double> _snapAnim = const AlwaysStoppedAnimation(0.0);
@@ -239,6 +241,9 @@ class _TournamentLayoutState extends ConsumerState<_TournamentLayout>
   }
 
   void _triggerSnap(double target) {
+    if (target != _scroll) {
+      _isMovingForward = target > _scroll;
+    }
     _snapFrom = _scroll;
     _snapTo = target;
     _snapAnim = Tween<double>(begin: _snapFrom, end: _snapTo)
@@ -386,6 +391,10 @@ class _TournamentLayoutState extends ConsumerState<_TournamentLayout>
       }
 
       final selIdx = _selectedIndex;
+      if (selIdx != _lastSelectedIndex) {
+        _isMovingForward = selIdx >= _lastSelectedIndex;
+        _lastSelectedIndex = selIdx;
+      }
       final isExtreme = _extreme != null && selIdx == 1 + _items.length;
       bool btnUnlocked;
       String btnLabel;
@@ -433,22 +442,42 @@ class _TournamentLayoutState extends ConsumerState<_TournamentLayout>
             width: W * 0.56,
             height: H * 0.52,
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 260),
+              duration: const Duration(milliseconds: 280),
               switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeIn,
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 0.06),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOutCubic,
-                  )),
-                  child: child,
-                ),
-              ),
+              switchOutCurve: Curves.easeInCubic,
+              layoutBuilder: (currentChild, previousChildren) {
+                return Stack(
+                  alignment: Alignment.topLeft,
+                  children: <Widget>[
+                    ...previousChildren,
+                    if (currentChild != null) currentChild,
+                  ],
+                );
+              },
+              transitionBuilder: (child, animation) {
+                final isIncoming = child.key ==
+                    ValueKey(
+                        '$_selectedIndex-${widget.progress.length}-${widget.tutorialDone}');
+                final inOffset = _isMovingForward
+                    ? const Offset(0.30, 0.0)
+                    : const Offset(-0.30, 0.0);
+                final outOffset = _isMovingForward
+                    ? const Offset(-0.30, 0.0)
+                    : const Offset(0.30, 0.0);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: isIncoming ? inOffset : outOffset,
+                      end: Offset.zero,
+                    ).animate(CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutCubic,
+                    )),
+                    child: child,
+                  ),
+                );
+              },
               child: _DetailPane(
                 key: ValueKey('$_selectedIndex-${widget.progress.length}-${widget.tutorialDone}'),
                 items: _items,
@@ -588,15 +617,19 @@ class _TutorialPane extends StatelessWidget {
             style: TextStyle(
               fontFamily: 'Bangers',
               fontSize: 26,
-              letterSpacing: 2,
+              letterSpacing: 4,
               color: accent,
             ),
-          ).animate().fadeIn(duration: 200.ms).slideY(
-                begin: 0.06,
-                end: 0,
-                duration: 280.ms,
-                curve: Curves.easeOutCubic,
-              ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'BASIC TRAINING',
+            style: TextStyle(
+              fontSize: 11,
+              letterSpacing: 1.5,
+              color: Color(0xFF888888),
+            ),
+          ),
           if (done) ...[
             const SizedBox(height: 10),
             Container(
@@ -686,12 +719,7 @@ class _TournamentPane extends ConsumerWidget {
               letterSpacing: 4,
               color: inkColor,
             ),
-          ).animate().fadeIn(duration: 220.ms, curve: Curves.easeOut).slideY(
-                begin: 0.06,
-                end: 0,
-                duration: 280.ms,
-                curve: Curves.easeOutCubic,
-              ),
+          ),
           const SizedBox(height: 4),
           Text(
             t.recLv,
@@ -700,7 +728,7 @@ class _TournamentPane extends ConsumerWidget {
               letterSpacing: 1.5,
               color: subColor,
             ),
-          ).animate(delay: 60.ms).fadeIn(duration: 200.ms),
+          ),
           if (isTutorialLocked) ...[
             const SizedBox(height: 10),
             Row(
@@ -797,16 +825,6 @@ class _ExtremePane extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'EXTREME',
-            style: TextStyle(
-              fontFamily: 'Bangers',
-              fontSize: 11,
-              letterSpacing: 4,
-              color: red,
-            ),
-          ).animate().fadeIn(duration: 200.ms),
-          const SizedBox(height: 2),
           Text(
             slot.enemyName,
             style: const TextStyle(
@@ -815,12 +833,17 @@ class _ExtremePane extends StatelessWidget {
               letterSpacing: 4,
               color: Color(0xFF1A1A1A),
             ),
-          ).animate(delay: 50.ms).fadeIn(duration: 220.ms).slideY(
-                begin: 0.06,
-                end: 0,
-                duration: 280.ms,
-                curve: Curves.easeOutCubic,
-              ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'EXTREME',
+            style: TextStyle(
+              fontFamily: 'Bangers',
+              fontSize: 11,
+              letterSpacing: 1.5,
+              color: red,
+            ),
+          ),
           const SizedBox(height: 4),
           if (!unlocked)
             const Row(

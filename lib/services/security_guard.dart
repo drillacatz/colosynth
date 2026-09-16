@@ -21,7 +21,7 @@ class SecurityGuard {
 
   Future<void> init(SharedPreferences prefs) async {
     _uid = prefs.getString('colosynth_save_owner_uid') ?? 'local_guest_offline';
-    if (_envSecret.isNotEmpty) {
+    if (_envSecret.isNotEmpty && !_envSecret.startsWith('YOUR_')) {
       _hmacKey = _envSecret;
       return;
     }

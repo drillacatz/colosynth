@@ -15,6 +15,7 @@ enum SfxEvent {
   defeat,
   reward,
   combo,
+  splashInk,
 }
 
 

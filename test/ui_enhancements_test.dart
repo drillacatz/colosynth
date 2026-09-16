@@ -6,6 +6,24 @@ import 'package:colosynth/screens/overlays/top_bar/level_exp_chip.dart';
 import 'package:colosynth/screens/overlays/daily_task_overlay.dart';
 import 'package:colosynth/screens/tournament/tournament_logic.dart';
 import 'package:colosynth/screens/store/recruit_tab_screen.dart';
+import 'package:colosynth/screens/level/tier_chest_overlay.dart';
+import 'package:colosynth/screens/overlays/player_progress_overlay.dart';
+import 'package:colosynth/providers/tournament_provider.dart';
+import 'package:colosynth/providers/tier_chest_provider.dart';
+import 'package:colosynth/providers/shared_preferences_provider.dart';
+
+class _MockTournamentProgressNotifier extends TournamentProgressNotifier {
+  @override
+  Map<String, String> build() => const {};
+}
+
+class _MockTierChestNotifier extends TierChestNotifier {
+  _MockTierChestNotifier(super.tier);
+  @override
+  TierChestState build() => const TierChestState(
+        claimed: [false, false, false, false, false, false],
+      );
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -100,6 +118,62 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('TierChestOverlay Dialog Tests', () {
+    testWidgets('renders inside a Dialog container with comic styling',
+        (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            tournamentProgressProvider
+                .overrideWith(_MockTournamentProgressNotifier.new),
+            tierChestProvider(1).overrideWith(() => _MockTierChestNotifier(1)),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: TierChestOverlay(
+                tier: 1,
+                tournamentName: 'Novice Arena',
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.text('TIER 1 REWARDS'), findsOneWidget);
+      expect(find.text('NOVICE ARENA'), findsOneWidget);
+      expect(find.byType(TierChestOverlay), findsOneWidget);
+    });
+  });
+
+  group('PlayerProgressOverlay Tests', () {
+    testWidgets('renders player progress overlay with level and xp',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PlayerProgressOverlay(
+              level: 5,
+              xp: 1200,
+              onDismiss: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(find.byType(PlayerProgressOverlay), findsOneWidget);
+      expect(find.text('LEVEL'), findsOneWidget);
+      expect(find.text('5'), findsWidgets);
       expect(tester.takeException(), isNull);
     });
   });

@@ -50,8 +50,8 @@ class AppInitializer {
     if (Firebase.apps.isEmpty) {
       try {
         final apiKey = AppConfig.firebaseAndroidApiKey;
-        if (apiKey.isEmpty) {
-          throw StateError('Firebase keys are empty');
+        if (apiKey.isEmpty || apiKey.startsWith('YOUR_')) {
+          throw StateError('Firebase keys are not configured');
         }
         await Firebase.initializeApp(
           options: const FirebaseOptions(

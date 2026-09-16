@@ -80,10 +80,7 @@ class _LevelScreenState extends ConsumerState<LevelScreen> {
                 children: [
                   const SizedBox(height: 52),
                   _LevelHeader(
-                    tier: widget.tournament.tier,
                     name: widget.tournament.name,
-                    recLv: widget.tournament.recLv,
-                    accent: accent,
                     isDark: _isDark,
                     onBack: () {
                       playSfx();
@@ -93,7 +90,7 @@ class _LevelScreenState extends ConsumerState<LevelScreen> {
                       .animate()
                       .fadeIn(duration: 240.ms)
                       .slideY(begin: -0.06, end: 0, duration: 280.ms),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
 
                   Expanded(
                     child: ListView.builder(
@@ -139,14 +136,10 @@ class _LevelScreenState extends ConsumerState<LevelScreen> {
 
   void _openChestOverlay(BuildContext context) {
     playSfx();
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => TierChestOverlay(
-        tier: widget.tournament.tier,
-        tournamentName: widget.tournament.name,
-      ),
+    TierChestOverlay.show(
+      context,
+      tier: widget.tournament.tier,
+      tournamentName: widget.tournament.name,
     );
   }
 }
@@ -154,18 +147,12 @@ class _LevelScreenState extends ConsumerState<LevelScreen> {
 
 class _LevelHeader extends StatelessWidget {
   const _LevelHeader({
-    required this.tier,
     required this.name,
-    required this.recLv,
-    required this.accent,
     required this.isDark,
     required this.onBack,
   });
 
-  final int tier;
   final String name;
-  final String recLv;
-  final Color accent;
   final bool isDark;
   final VoidCallback onBack;
 
@@ -174,7 +161,7 @@ class _LevelHeader extends StatelessWidget {
     final inkColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
           AnimatedTapButton(
@@ -202,53 +189,14 @@ class _LevelHeader extends StatelessWidget {
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: accent.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(3),
-                        border: Border.all(
-                            color: accent.withValues(alpha: 0.4), width: 1),
-                      ),
-                      child: Text(
-                        'TIER $tier',
-                        style: TextStyle(
-                          fontFamily: 'Bangers',
-                          fontSize: 10,
-                          letterSpacing: 2.5,
-                          color: accent,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      recLv,
-                      style: TextStyle(
-                        fontSize: 10,
-                        letterSpacing: 1.5,
-                        color: (isDark ? Colors.white : const Color(0xFF1A1A1A))
-                            .withValues(alpha: 0.4),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  name,
-                  style: TextStyle(
-                    fontFamily: 'Bangers',
-                    fontSize: 22,
-                    letterSpacing: 3,
-                    color: inkColor,
-                  ),
-                ),
-              ],
+            child: Text(
+              name,
+              style: TextStyle(
+                fontFamily: 'Bangers',
+                fontSize: 26,
+                letterSpacing: 4,
+                color: inkColor,
+              ),
             ),
           ),
         ],
