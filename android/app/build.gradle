@@ -4,6 +4,16 @@ plugins {
     id "com.google.gms.google-services"
 }
 
+def googleServicesJson = file("google-services.json")
+def googleServicesExample = file("google-services.json.example")
+if (!googleServicesJson.exists() && googleServicesExample.exists()) {
+    copy {
+        from googleServicesExample
+        into projectDir
+        rename "google-services.json.example", "google-services.json"
+    }
+}
+
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file("local.properties")
 localPropertiesFile.withReader("UTF-8") { reader ->
