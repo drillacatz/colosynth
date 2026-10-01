@@ -27,6 +27,15 @@ enum SynthRarity {
 
   const SynthRarity(this.label, this.color, this.shadowColor);
 
+  static const List<Color> rainbowColors = [
+    Color(0xFFFF0055), // Magenta/Ruby
+    Color(0xFFFFD500), // Amber Gold
+    Color(0xFF00FF88), // Emerald Neon
+    Color(0xFF00E5FF), // Cyan Spark
+    Color(0xFF7C4DFF), // Violet Beam
+    Color(0xFFFF0055), // Loop back
+  ];
+
   static SynthRarity fromDefinitionId(String id) {
     final num = int.tryParse(id.replaceAll('synth_', '')) ?? 1;
     if (num >= 39) return SynthRarity.legendary;
@@ -182,7 +191,9 @@ class _SynthCrateOpeningOverlayState
               ? const Color(0xFF8D6E63)
               : (i % 3 == 1
                   ? const Color(0xFF5D4037)
-                  : _currentRarity.color),
+                  : (_currentRarity == SynthRarity.legendary
+                      ? SynthRarity.rainbowColors[i % (SynthRarity.rainbowColors.length - 1)]
+                      : _currentRarity.color)),
         ),
       );
     }
@@ -225,6 +236,7 @@ class _SynthCrateOpeningOverlayState
   @override
   Widget build(BuildContext context) {
     final scaleFactor = 1.0 + (_tapsDone * 0.08);
+    final isLegendary = _currentRarity == SynthRarity.legendary;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -239,10 +251,16 @@ class _SynthCrateOpeningOverlayState
                   gradient: RadialGradient(
                     center: Alignment.center,
                     radius: 0.85,
-                    colors: [
-                      _currentRarity.color.withValues(alpha: 0.25),
-                      Colors.transparent,
-                    ],
+                    colors: isLegendary
+                        ? [
+                            const Color(0xFFFF0055).withValues(alpha: 0.22),
+                            const Color(0xFF7C4DFF).withValues(alpha: 0.15),
+                            Colors.transparent,
+                          ]
+                        : [
+                            _currentRarity.color.withValues(alpha: 0.25),
+                            Colors.transparent,
+                          ],
                   ),
                 ),
               ),
@@ -252,7 +270,10 @@ class _SynthCrateOpeningOverlayState
           if (_isOpened)
             Positioned.fill(
               child: Center(
-                child: _SunburstPainterWidget(color: _currentRarity.color)
+                child: _SunburstPainterWidget(
+                  color: _currentRarity.color,
+                  isLegendary: _currentRarity == SynthRarity.legendary,
+                )
                     .animate(onPlay: (c) => c.repeat())
                     .rotate(duration: 12.seconds),
               ),
@@ -359,6 +380,7 @@ class _SynthCrateOpeningOverlayState
   }
 
   Widget _buildHeader() {
+    final isLegendary = _currentRarity == SynthRarity.legendary;
     return Column(
       children: [
         AnimatedContainer(
@@ -367,19 +389,55 @@ class _SynthCrateOpeningOverlayState
           decoration: BoxDecoration(
             color: _currentRarity.color.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _currentRarity.color, width: 2),
-          ),
-          child: Text(
-            _isOpened
-                ? '${_currentRarity.label} SYNTH UNLOCKED!'
-                : 'SYNTH CRATE',
-            style: TextStyle(
-              fontFamily: 'Bangers',
-              fontSize: 26,
-              letterSpacing: 3,
-              color: _currentRarity.color,
+            border: Border.all(
+              color: isLegendary
+                  ? const Color(0xFF00E5FF)
+                  : _currentRarity.color,
+              width: 2,
             ),
+            boxShadow: isLegendary
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFFF0055).withValues(alpha: 0.45),
+                      blurRadius: 16,
+                      spreadRadius: 2,
+                    ),
+                    BoxShadow(
+                      color: const Color(0xFF00E5FF).withValues(alpha: 0.45),
+                      blurRadius: 16,
+                      spreadRadius: -2,
+                    ),
+                  ]
+                : null,
           ),
+          child: isLegendary
+              ? ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: SynthRarity.rainbowColors,
+                  ).createShader(bounds),
+                  child: Text(
+                    _isOpened
+                        ? '${_currentRarity.label} SYNTH UNLOCKED!'
+                        : 'SYNTH CRATE',
+                    style: const TextStyle(
+                      fontFamily: 'Bangers',
+                      fontSize: 26,
+                      letterSpacing: 3,
+                      color: Colors.white,
+                    ),
+                  ),
+                )
+              : Text(
+                  _isOpened
+                      ? '${_currentRarity.label} SYNTH UNLOCKED!'
+                      : 'SYNTH CRATE',
+                  style: TextStyle(
+                    fontFamily: 'Bangers',
+                    fontSize: 26,
+                    letterSpacing: 3,
+                    color: _currentRarity.color,
+                  ),
+                ),
         ),
         const SizedBox(height: 8),
         Text(
@@ -450,6 +508,8 @@ class _SynthCrateOpeningOverlayState
     final def = _awardedDefinition;
     if (def == null) return const SizedBox.shrink();
 
+    final isLegendary = _currentRarity == SynthRarity.legendary;
+
     return GestureDetector(
       onTap: () {
         SynthCardShowcaseOverlay.show(
@@ -464,14 +524,32 @@ class _SynthCrateOpeningOverlayState
       decoration: BoxDecoration(
         color: const Color(0xFF161522),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _currentRarity.color, width: 3),
-        boxShadow: [
-          BoxShadow(
-            color: _currentRarity.color.withValues(alpha: 0.4),
-            blurRadius: 24,
-            spreadRadius: 4,
-          ),
-        ],
+        border: Border.all(
+          color: isLegendary ? const Color(0xFF00E5FF) : _currentRarity.color,
+          width: 3,
+        ),
+        boxShadow: isLegendary
+            ? [
+                BoxShadow(
+                  color: const Color(0xFFFF0055).withValues(alpha: 0.45),
+                  blurRadius: 28,
+                  spreadRadius: 4,
+                  offset: const Offset(-4, -4),
+                ),
+                BoxShadow(
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.45),
+                  blurRadius: 28,
+                  spreadRadius: 4,
+                  offset: const Offset(4, 4),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: _currentRarity.color.withValues(alpha: 0.4),
+                  blurRadius: 24,
+                  spreadRadius: 4,
+                ),
+              ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -479,7 +557,10 @@ class _SynthCrateOpeningOverlayState
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             decoration: BoxDecoration(
-              color: _currentRarity.color,
+              gradient: isLegendary
+                  ? const LinearGradient(colors: SynthRarity.rainbowColors)
+                  : null,
+              color: isLegendary ? null : _currentRarity.color,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -501,14 +582,38 @@ class _SynthCrateOpeningOverlayState
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: _currentRarity.color.withValues(alpha: 0.15),
-              border: Border.all(color: _currentRarity.color, width: 2.5),
+              border: Border.all(
+                color: isLegendary
+                    ? const Color(0xFF00E5FF)
+                    : _currentRarity.color,
+                width: 2.5,
+              ),
+              boxShadow: isLegendary
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFFFF0055).withValues(alpha: 0.4),
+                        blurRadius: 16,
+                      ),
+                    ]
+                  : null,
             ),
             child: Center(
-              child: Icon(
-                Icons.bolt,
-                size: 54,
-                color: _currentRarity.color,
-              ),
+              child: isLegendary
+                  ? ShaderMask(
+                      shaderCallback: (bounds) => const LinearGradient(
+                        colors: SynthRarity.rainbowColors,
+                      ).createShader(bounds),
+                      child: const Icon(
+                        Icons.bolt,
+                        size: 54,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(
+                      Icons.bolt,
+                      size: 54,
+                      color: _currentRarity.color,
+                    ),
             ),
           )
               .animate()
@@ -663,19 +768,29 @@ class _SynthCrateOpeningOverlayState
   }
 
   Widget _buildClaimButton() {
+    final isLegendary = _currentRarity == SynthRarity.legendary;
     return GestureDetector(
       onTap: _onClose,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 14),
         decoration: BoxDecoration(
-          color: _currentRarity.color,
+          gradient: isLegendary
+              ? const LinearGradient(colors: SynthRarity.rainbowColors)
+              : null,
+          color: isLegendary ? null : _currentRarity.color,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.black, width: 2.5),
-          boxShadow: const [
-            BoxShadow(
+          boxShadow: [
+            const BoxShadow(
               color: Colors.black,
               offset: Offset(3, 4),
             ),
+            if (isLegendary)
+              BoxShadow(
+                color: const Color(0xFFFF0055).withValues(alpha: 0.45),
+                blurRadius: 18,
+                spreadRadius: 2,
+              ),
           ],
         ),
         child: const Text(
@@ -756,39 +871,46 @@ class _WoodParticlePainter extends CustomPainter {
 
 class _SunburstPainterWidget extends StatelessWidget {
   final Color color;
-  const _SunburstPainterWidget({required this.color});
+  final bool isLegendary;
+  const _SunburstPainterWidget({required this.color, this.isLegendary = false});
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
       size: const Size(400, 400),
-      painter: _SunburstPainter(color: color),
+      painter: _SunburstPainter(color: color, isLegendary: isLegendary),
     );
   }
 }
 
 class _SunburstPainter extends CustomPainter {
   final Color color;
-  _SunburstPainter({required this.color});
+  final bool isLegendary;
+  _SunburstPainter({required this.color, this.isLegendary = false});
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()
-      ..color = color.withValues(alpha: 0.18)
-      ..style = PaintingStyle.fill;
+    final paint = Paint()..style = PaintingStyle.fill;
 
-    const rays = 16;
+    const rays = 18;
     final angleStep = (2 * math.pi) / rays;
 
     for (int i = 0; i < rays; i++) {
       final startAngle = i * angleStep;
+      if (isLegendary) {
+        final rainbowColor = SynthRarity.rainbowColors[i % (SynthRarity.rainbowColors.length - 1)];
+        paint.color = rainbowColor.withValues(alpha: 0.28);
+      } else {
+        paint.color = color.withValues(alpha: 0.18);
+      }
+
       final path = Path()
         ..moveTo(center.dx, center.dy)
         ..arcTo(
           Rect.fromCircle(center: center, radius: size.width),
           startAngle,
-          angleStep * 0.4,
+          angleStep * 0.45,
           false,
         )
         ..close();
@@ -797,5 +919,6 @@ class _SunburstPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _SunburstPainter old) => old.color != color;
+  bool shouldRepaint(covariant _SunburstPainter old) =>
+      old.color != color || old.isLegendary != isLegendary;
 }

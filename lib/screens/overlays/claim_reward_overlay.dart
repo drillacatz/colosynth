@@ -14,18 +14,22 @@ Color get _kInk => AppColors.ink;
 Color get _kSub => AppColors.sketchGray;
 const _kInkBlue = Color(0xFF2196F3);
 const _kPaintPink = Color(0xFFE91E63);
+const _kKeyAmber = Color(0xFFFF8F00);
 
 class ClaimRewardOverlay extends StatefulWidget {
   const ClaimRewardOverlay({
     super.key,
-    required this.inkReward,
-    required this.paintReward,
+    this.inkReward = 0,
+    this.paintReward = 0,
     this.xpReward = 0,
     this.stars,
     this.bonusLabel,
     this.bonusInk = 0,
     this.bonusPaint = 0,
     this.expItems = const {},
+    this.title,
+    this.isAdFreeUnlocked = false,
+    this.synthKeys = 0,
     required this.onDismiss,
   });
 
@@ -37,18 +41,24 @@ class ClaimRewardOverlay extends StatefulWidget {
   final int bonusInk;
   final int bonusPaint;
   final Map<String, int> expItems;
+  final String? title;
+  final bool isAdFreeUnlocked;
+  final int synthKeys;
   final VoidCallback onDismiss;
 
   static Future<void> show(
     BuildContext context, {
-    required int inkReward,
-    required int paintReward,
+    int inkReward = 0,
+    int paintReward = 0,
     int xpReward = 0,
     int? stars,
     String? bonusLabel,
     int bonusInk = 0,
     int bonusPaint = 0,
     Map<String, int> expItems = const {},
+    String? title,
+    bool isAdFreeUnlocked = false,
+    int synthKeys = 0,
   }) {
     return showDialog<void>(
       context: context,
@@ -63,6 +73,9 @@ class ClaimRewardOverlay extends StatefulWidget {
         bonusInk: bonusInk,
         bonusPaint: bonusPaint,
         expItems: expItems,
+        title: title,
+        isAdFreeUnlocked: isAdFreeUnlocked,
+        synthKeys: synthKeys,
         onDismiss: () => Navigator.of(ctx).pop(),
       ),
     );
@@ -127,6 +140,9 @@ class _ClaimRewardOverlayState extends State<ClaimRewardOverlay>
               bonusInk: widget.bonusInk,
               bonusPaint: widget.bonusPaint,
               expItems: widget.expItems,
+              title: widget.title,
+              isAdFreeUnlocked: widget.isAdFreeUnlocked,
+              synthKeys: widget.synthKeys,
               onContinue: widget.onDismiss,
             ),
           ),
@@ -146,6 +162,9 @@ class _RewardPanel extends StatelessWidget {
     required this.bonusInk,
     required this.bonusPaint,
     required this.expItems,
+    this.title,
+    required this.isAdFreeUnlocked,
+    required this.synthKeys,
     required this.onContinue,
   });
 
@@ -157,6 +176,9 @@ class _RewardPanel extends StatelessWidget {
   final int bonusInk;
   final int bonusPaint;
   final Map<String, int> expItems;
+  final String? title;
+  final bool isAdFreeUnlocked;
+  final int synthKeys;
   final VoidCallback onContinue;
 
   bool get _hasTierBonus =>
@@ -197,16 +219,60 @@ class _RewardPanel extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const FittedBox(
+                  FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: _BurstTitle(text: 'CLAIMED!'),
+                    child: _BurstTitle(text: title ?? 'CLAIMED!'),
                   ),
                   const SizedBox(height: 4),
+                  if (isAdFreeUnlocked) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _kGold,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: _kInk, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _kInk.withValues(alpha: 0.35),
+                            offset: const Offset(2, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.workspace_premium, color: AppColors.ink, size: 20),
+                          SizedBox(width: 6),
+                          Text(
+                            'AD FREE UNLOCKED',
+                            style: TextStyle(
+                              fontFamily: 'Bangers',
+                              color: AppColors.ink,
+                              fontSize: 16,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                          SizedBox(width: 6),
+                          Icon(Icons.stars_rounded, color: AppColors.ink, size: 20),
+                        ],
+                      ),
+                    ),
+                  ],
                   if (stars != null) ...[
                     const SizedBox(height: 14),
                     MiniStarRow(stars: stars!),
                   ],
                   const SizedBox(height: 20),
+                  if (synthKeys > 0) ...[
+                    RewardRow(
+                      icon: Icons.vpn_key_rounded,
+                      color: _kKeyAmber,
+                      label: 'SYNTH KEY',
+                      value: synthKeys,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   if (inkReward > 0) ...[
                     RewardRow(
                       icon: Icons.water_drop,

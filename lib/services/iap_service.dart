@@ -219,18 +219,6 @@ class IapService {
       }
 
       if (product == null) {
-        final isDevOrTest = !AppConfig.isProduction ||
-            kDebugMode ||
-            _apiKey.startsWith('test_');
-        if (isDevOrTest && _allProductIds.contains(productId)) {
-          _log('Simulating purchase for $productId in development/test store mode.');
-          if (productId == StoreData.adFreeBundle.productId ||
-              productId == StoreData.adFreeDeluxeBundle.productId) {
-            _adFreeActive = true;
-          }
-          return const IapSuccess();
-        }
-
         return IapError('Product "$productId" not found in store catalog.');
       }
 
@@ -294,6 +282,11 @@ class IapService {
   }
 
 
+
+  @visibleForTesting
+  void setInitializedForTest(bool value) {
+    _initialized = value;
+  }
 
   void dispose() {
     _customerInfoStreamController.close();

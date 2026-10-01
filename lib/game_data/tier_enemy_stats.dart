@@ -15,8 +15,19 @@ class TierEnemyStats {
     this.stamina = 100,
   });
 
+  static const TierEnemyStats tutorial = TierEnemyStats(
+    hp: 200,
+    atk: 15,
+    def: 0,
+    damageReduction: 0.0,
+    shield: 0,
+    stamina: 30,
+  );
+
   static TierEnemyStats forTier(int tier) {
     switch (tier) {
+      case 0:
+        return tutorial;
       case 1:
         return const TierEnemyStats(hp: 650, atk: 55, def: 10, damageReduction: 0.20, shield: 10, stamina: 60);
       case 2:

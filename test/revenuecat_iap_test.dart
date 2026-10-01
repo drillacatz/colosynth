@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +10,7 @@ import 'package:colosynth/providers/wallet_provider.dart';
 import 'package:colosynth/providers/shared_preferences_provider.dart';
 import 'package:colosynth/services/battle_ads_service.dart';
 import 'package:colosynth/services/save_manager.dart';
+import 'package:colosynth/screens/overlays/claim_reward_overlay.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -161,6 +164,77 @@ void main() {
       // When adFreeActive is false, showAd is attempted
       // If we verify the adFreeActive branch in showDoubleRewardAd:
       expect(BattleAdsService.instance.canShowDoubleReward, isTrue);
+    });
+  });
+
+  group('IapService Google Play Guarding (Bypass Removal)', () {
+    test('purchaseProduct returns IapError when product is not in catalog', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      IapService.instance.setInitializedForTest(true);
+      addTearDown(() {
+        debugDefaultTargetPlatformOverride = null;
+        IapService.instance.setInitializedForTest(false);
+      });
+
+      final result = await IapService.instance.purchaseProduct('colosynth_paint_20');
+      expect(result, isA<IapError>());
+      final error = result as IapError;
+      expect(error.message, contains('not found in store catalog'));
+    });
+  });
+
+  group('ClaimRewardOverlay Widget Tests', () {
+    testWidgets('renders custom title, ad-free badge, synth keys, ink, and paint', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ClaimRewardOverlay(
+              title: 'PURCHASE SUCCESSFUL!',
+              isAdFreeUnlocked: true,
+              synthKeys: 1,
+              inkReward: 8888,
+              paintReward: 88,
+              onDismiss: () {},
+            ),
+          ),
+        ),
+      );
+
+      // Verify burst title
+      expect(find.text('PURCHASE SUCCESSFUL!'), findsOneWidget);
+
+      // Verify Ad Free Unlocked badge
+      expect(find.text('AD FREE UNLOCKED'), findsOneWidget);
+
+      // Verify Synth Key row
+      expect(find.text('SYNTH KEY'), findsOneWidget);
+      expect(find.text('+1'), findsOneWidget);
+
+      // Verify Ink and Paint rows
+      expect(find.text('INK'), findsOneWidget);
+      expect(find.text('+8888'), findsOneWidget);
+      expect(find.text('PAINT'), findsOneWidget);
+      expect(find.text('+88'), findsOneWidget);
+    });
+
+    testWidgets('renders default CLAIMED! title when title is omitted', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ClaimRewardOverlay(
+              inkReward: 100,
+              paintReward: 5,
+              onDismiss: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('CLAIMED!'), findsOneWidget);
+      expect(find.text('INK'), findsOneWidget);
+      expect(find.text('+100'), findsOneWidget);
+      expect(find.text('PAINT'), findsOneWidget);
+      expect(find.text('+5'), findsOneWidget);
     });
   });
 }

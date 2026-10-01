@@ -125,16 +125,9 @@ class _ReadyScreenState extends ConsumerState<ReadyScreen> {
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle.light,
           child: Scaffold(
-            backgroundColor: Colors.transparent,
+            backgroundColor: const Color(0xFF0A0512),
             body: Stack(
               children: [
-                Positioned.fill(
-                  child: Image.asset(
-                    SpriteRepository.readyScreenBackground,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF0A0512)),
-                  ),
-                ),
                 if (_lightningFinished)
                   ClipPath(
                     clipper: ReadyQuadrantClipper(
@@ -144,12 +137,19 @@ class _ReadyScreenState extends ConsumerState<ReadyScreen> {
                       xBottomBase: xBot,
                       slantedWidth: sw,
                     ),
-                    child: Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      color: const Color(0xEA0D0600),
+                    child: SizedBox.expand(
                       child: Stack(
                         children: [
+                          Positioned.fill(
+                            child: Image.asset(
+                              SpriteRepository.readyScreenBackground,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF0A0512)),
+                            ),
+                          ),
+                          const Positioned.fill(
+                            child: ColoredBox(color: Color(0x730D0600)),
+                          ),
                           Positioned(
                             top: 0,
                             left: -20,
@@ -183,12 +183,19 @@ class _ReadyScreenState extends ConsumerState<ReadyScreen> {
                       xBottomBase: xBot,
                       slantedWidth: sw,
                     ),
-                    child: Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      color: const Color(0xEA121212),
+                    child: SizedBox.expand(
                       child: Stack(
                         children: [
+                          Positioned.fill(
+                            child: Image.asset(
+                              SpriteRepository.readyScreenBackground,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF0A0512)),
+                            ),
+                          ),
+                          const Positioned.fill(
+                            child: ColoredBox(color: Color(0x73121212)),
+                          ),
                           Positioned(
                             top: 100,
                             right: -6,
@@ -221,12 +228,19 @@ class _ReadyScreenState extends ConsumerState<ReadyScreen> {
                       xBottomBase: xBot,
                       slantedWidth: sw,
                     ),
-                    child: Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      color: const Color(0xFF141414),
+                    child: SizedBox.expand(
                       child: Stack(
                         children: [
+                          Positioned.fill(
+                            child: Image.asset(
+                              SpriteRepository.readyScreenBackground,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF0A0512)),
+                            ),
+                          ),
+                          const Positioned.fill(
+                            child: ColoredBox(color: Color(0x73141414)),
+                          ),
                           Positioned(
                             bottom: 130,
                             left: 24,
@@ -250,13 +264,20 @@ class _ReadyScreenState extends ConsumerState<ReadyScreen> {
                       xBottomBase: xBot,
                       slantedWidth: sw,
                     ),
-                    child: Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      color: const Color(0xFF121212),
-                      child: const Stack(
+                    child: SizedBox.expand(
+                      child: Stack(
                         children: [
-                          SizedBox.shrink(),
+                          Positioned.fill(
+                            child: Image.asset(
+                              SpriteRepository.readyScreenBackground,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF0A0512)),
+                            ),
+                          ),
+                          const Positioned.fill(
+                            child: ColoredBox(color: Color(0x73121212)),
+                          ),
+                          const SizedBox.shrink(),
                         ],
                       ),
                     ),

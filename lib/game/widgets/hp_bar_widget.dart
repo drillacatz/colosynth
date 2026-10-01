@@ -9,19 +9,22 @@ class HpBar extends StatelessWidget {
     required this.max,
     this.label = 'HP',
     this.height = 22,
+    this.baseColor,
   });
 
   final int current;
   final int max;
   final String label;
   final double height;
+  final Color? baseColor;
 
   Color get _barColor {
     final safeMax = max < 1 ? 1 : max;
     final r = current / safeMax;
-    if (r > .5) return AppColors.ink;
-    if (r > .25) return AppColors.darkGray;
-    return AppColors.sketchGray;
+    final primary = baseColor ?? const Color(0xFFFF3333);
+    if (r > .5) return primary;
+    if (r > .25) return const Color(0xFFFF6B35);
+    return const Color(0xFFD32F2F);
   }
 
   @override

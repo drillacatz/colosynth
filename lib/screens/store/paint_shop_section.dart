@@ -9,6 +9,7 @@ import 'package:colosynth/game_data/store_data.dart';
 import 'package:colosynth/providers/store_provider.dart';
 import 'package:colosynth/services/iap_service.dart';
 import 'package:colosynth/screens/theme/tokens.dart';
+import 'package:colosynth/screens/overlays/claim_reward_overlay.dart';
 import 'package:colosynth/screens/overlays/locked_feature_overlay.dart';
 import 'package:colosynth/screens/store/shop_card.dart';
 
@@ -151,7 +152,13 @@ class PaintBundleGridCard extends ConsumerWidget {
     unawaited(HapticFeedback.mediumImpact());
     final result = await ref.read(storeControllerProvider).buyBundle(bundle.productId);
     if (!context.mounted) return;
-    if (result is IapError) {
+    if (result is IapSuccess) {
+      unawaited(ClaimRewardOverlay.show(
+        context,
+        title: 'PURCHASE SUCCESSFUL!',
+        paintReward: bundle.paint,
+      ));
+    } else if (result is IapError) {
       unawaited(LockedFeatureOverlay.show(
         context,
         customTitle: 'Purchase Failed',
@@ -195,7 +202,14 @@ class _ComboBundleGridCard extends ConsumerWidget {
     unawaited(HapticFeedback.mediumImpact());
     final result = await ref.read(storeControllerProvider).buyBundle(bundle.productId);
     if (!context.mounted) return;
-    if (result is IapError) {
+    if (result is IapSuccess) {
+      unawaited(ClaimRewardOverlay.show(
+        context,
+        title: 'PURCHASE SUCCESSFUL!',
+        inkReward: bundle.ink,
+        paintReward: bundle.paint,
+      ));
+    } else if (result is IapError) {
       unawaited(LockedFeatureOverlay.show(
         context,
         customTitle: 'Purchase Failed',
@@ -291,6 +305,12 @@ class _StarterBundleCard extends ConsumerWidget {
     if (!context.mounted) return;
     if (result is IapSuccess) {
       onPurchased();
+      unawaited(ClaimRewardOverlay.show(
+        context,
+        title: 'PURCHASE SUCCESSFUL!',
+        inkReward: bundle.ink,
+        paintReward: bundle.paint,
+      ));
     } else if (result is IapError) {
       unawaited(LockedFeatureOverlay.show(
         context,

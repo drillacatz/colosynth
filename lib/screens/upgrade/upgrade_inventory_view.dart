@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:colosynth/database/synth/synth_definition.dart';
 import 'package:colosynth/providers/inventory_provider.dart';
+import 'package:colosynth/screens/overlays/synth_crate_opening_overlay.dart'
+    show SynthRarity;
 import 'package:colosynth/screens/synth/synth_card_showcase_overlay.dart';
 import 'package:colosynth/screens/theme/tokens.dart';
 import 'package:colosynth/screens/upgrade/upgrade_notifier.dart';
@@ -120,8 +122,23 @@ class _InventorySlot extends ConsumerWidget {
         );
         label = def.name.toUpperCase();
         icon = Icons.auto_awesome;
-        color = const Color(0xFF00E5FF);
         badgeCount = inst?.level ?? 1;
+
+        final rarity = SynthRarity.fromDefinitionId(def.id);
+        switch (rarity) {
+          case SynthRarity.common:
+            color = const Color(0xFF78909C);
+            break;
+          case SynthRarity.rare:
+            color = const Color(0xFF2196F3);
+            break;
+          case SynthRarity.epic:
+            color = const Color(0xFFAB47BC);
+            break;
+          case SynthRarity.legendary:
+            color = const Color(0xFFFFB300);
+            break;
+        }
         break;
 
       case InventoryItemType.key:
@@ -160,27 +177,44 @@ class _InventorySlot extends ConsumerWidget {
         break;
     }
 
+    final isSynth = item.type == InventoryItemType.synth;
+    final borderColor = isSynth
+        ? color
+        : (isSelected ? color : const Color(0xFFD8D4CF));
+    final borderWidth =
+        isSelected ? (isSynth ? 2.8 : 2.5) : (isSynth ? 1.8 : 1.2);
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
           color: isSelected
-              ? color.withValues(alpha: 0.20)
-              : const Color(0xFFF8F6F0),
+              ? color.withValues(alpha: 0.22)
+              : (isSynth
+                  ? color.withValues(alpha: 0.08)
+                  : const Color(0xFFF8F6F0)),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? color : const Color(0xFFD8D4CF),
-            width: isSelected ? 2.5 : 1.2,
+            color: borderColor,
+            width: borderWidth,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withValues(alpha: 0.35),
-                    blurRadius: 6,
+                    color: color.withValues(alpha: 0.40),
+                    blurRadius: 7,
+                    spreadRadius: 1,
                   ),
                 ]
-              : [],
+              : (isSynth
+                  ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.20),
+                        blurRadius: 4,
+                      ),
+                    ]
+                  : []),
         ),
         child: Stack(
           alignment: Alignment.center,
@@ -188,7 +222,13 @@ class _InventorySlot extends ConsumerWidget {
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 22, color: isSelected ? color : Colors.black87),
+                Icon(
+                  icon,
+                  size: 22,
+                  color: isSynth
+                      ? color
+                      : (isSelected ? color : Colors.black87),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   label,
@@ -294,16 +334,33 @@ class _DynamicDetailPanel extends ConsumerWidget {
       final isEquipped = equippedChar != null;
       final charName = equippedChar?.toUpperCase() ?? 'NONE';
 
+      final rarity = SynthRarity.fromDefinitionId(def.id);
+      final Color rarityColor;
+      switch (rarity) {
+        case SynthRarity.common:
+          rarityColor = const Color(0xFF78909C);
+          break;
+        case SynthRarity.rare:
+          rarityColor = const Color(0xFF2196F3);
+          break;
+        case SynthRarity.epic:
+          rarityColor = const Color(0xFFAB47BC);
+          break;
+        case SynthRarity.legendary:
+          rarityColor = const Color(0xFFFFB300);
+          break;
+      }
+
       return Container(
         padding: const EdgeInsets.all(14),
         margin: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF00E5FF), width: 1.8),
+          border: Border.all(color: rarityColor, width: 1.8),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
+              color: rarityColor.withValues(alpha: 0.20),
               blurRadius: 10,
             ),
           ],
@@ -314,14 +371,14 @@ class _DynamicDetailPanel extends ConsumerWidget {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: const Color(0xFF00E5FF).withValues(alpha: 0.12),
+                color: rarityColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF00E5FF)),
+                border: Border.all(color: rarityColor),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.auto_awesome,
                 size: 32,
-                color: Color(0xFF00E5FF),
+                color: rarityColor,
               ),
             ),
             const SizedBox(width: 14),

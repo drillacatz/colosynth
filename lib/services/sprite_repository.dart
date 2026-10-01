@@ -16,7 +16,7 @@ abstract final class SpriteRepository {
   }
 
   /// Player block overlay/effect sprite path.
-  static const String blockEffect = 'block.png';
+  static const String blockEffect = 'vfx/vfx_shield_barrier.png';
 
   /// Resolves the character animation frame path relative to Flame's asset folder.
   /// Escapes Flame's default 'assets/images' prefix.

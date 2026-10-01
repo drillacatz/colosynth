@@ -780,73 +780,194 @@ class _HoloFoilPainter extends CustomPainter {
     // Common cards only feature sleek specular glare
     if (rarity == SynthRarity.common) return;
 
-    // 2. Rainbow Holographic Spectral Foil (Rare, Epic, Legendary)
-    final holoAngle = math.atan2(pitch, roll) + math.pi / 4;
-    final holoOpacity = (rarity == SynthRarity.legendary)
-        ? 0.45
-        : (rarity == SynthRarity.epic)
-            ? 0.35
-            : 0.22;
+    // 2. Rare: Diagonal Spectral Prism Diffraction Lines (Reverse-holo sheen)
+    if (rarity == SynthRarity.rare) {
+      final diagAngle = math.atan2(pitch, roll) + math.pi / 4;
+      final shift = (roll + pitch) * 1.5;
 
-    final rainbowColors = [
-      const Color(0xFFFF0055).withValues(alpha: holoOpacity), // Magenta/Ruby
-      const Color(0xFFFFD500).withValues(alpha: holoOpacity), // Amber Gold
-      const Color(0xFF00FF88).withValues(alpha: holoOpacity), // Emerald Neon
-      const Color(0xFF00E5FF).withValues(alpha: holoOpacity), // Cyan Spark
-      const Color(0xFF7C4DFF).withValues(alpha: holoOpacity), // Violet Beam
-      const Color(0xFFFF0055).withValues(alpha: holoOpacity), // Loop back
-    ];
+      // Base linear prism sheen across card
+      final prismPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment(math.cos(diagAngle), math.sin(diagAngle)),
+          end: Alignment(-math.cos(diagAngle), -math.sin(diagAngle)),
+          colors: SynthRarity.rainbowColors
+              .map((c) => c.withValues(alpha: 0.20))
+              .toList(),
+        ).createShader(Rect.fromLTWH(0, 0, w, h))
+        ..blendMode = BlendMode.colorDodge;
+      canvas.drawRect(Rect.fromLTWH(0, 0, w, h), prismPaint);
 
-    final foilPaint = Paint()
-      ..shader = SweepGradient(
-        center: Alignment(
-          (glareCenter.dx / w) * 2 - 1,
-          (glareCenter.dy / h) * 2 - 1,
-        ),
-        startAngle: holoAngle,
-        endAngle: holoAngle + math.pi * 2,
-        colors: rainbowColors,
-      ).createShader(Rect.fromLTWH(0, 0, w, h))
-      ..blendMode = BlendMode.colorDodge;
+      // Diagonal diffraction micro-lines
+      final linePaint = Paint()
+        ..blendMode = BlendMode.screen
+        ..style = PaintingStyle.stroke;
 
-    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), foilPaint);
+      const bandCount = 14;
+      for (int i = 0; i < bandCount; i++) {
+        final phase = ((i / bandCount) + shift) % 1.0;
+        final colorIndex =
+            (phase * (SynthRarity.rainbowColors.length - 1)).floor();
+        final c1 = SynthRarity.rainbowColors[colorIndex];
+        final c2 = SynthRarity.rainbowColors[
+            (colorIndex + 1) % SynthRarity.rainbowColors.length];
+        final t = (phase * (SynthRarity.rainbowColors.length - 1)) - colorIndex;
+        final bandColor = Color.lerp(c1, c2, t)!.withValues(alpha: 0.30);
 
-    // 3. Prismatic Cosmic Star Glitter Matrix (Epic & Legendary)
-    if (rarity == SynthRarity.epic || rarity == SynthRarity.legendary) {
-      final glitterRng = math.Random(1337);
-      final count = (rarity == SynthRarity.legendary) ? 42 : 24;
+        final yOffset = phase * (h + w * 0.8) - w * 0.4;
+        linePaint.color = bandColor;
+        linePaint.strokeWidth = 2.0 + math.sin(phase * math.pi) * 3.5;
+        canvas.drawLine(
+          Offset(-20, yOffset),
+          Offset(w + 20, yOffset - w * 0.55),
+          linePaint,
+        );
+      }
+      return;
+    }
 
-      final starPaint = Paint()..blendMode = BlendMode.screen;
+    // 3. Epic: Shattered Crystal / Geometric Prismatic Diffraction Mesh
+    if (rarity == SynthRarity.epic) {
+      const epicColors = [
+        Color(0xFFE040FB), // Magenta Orchid
+        Color(0xFF7C4DFF), // Deep Violet
+        Color(0xFF00E5FF), // Electric Cyan
+        Color(0xFFFF4081), // Neon Pink
+        Color(0xFFE040FB),
+      ];
 
-      for (int i = 0; i < count; i++) {
-        final sx = glitterRng.nextDouble() * w;
-        final sy = glitterRng.nextDouble() * h;
-        // Glitter brightness depends on distance to the moving light center
-        final dist = (Offset(sx, sy) - glareCenter).distance;
-        final proximity = (1.0 - (dist / glareRadius)).clamp(0.0, 1.0);
+      final holoAngle = math.atan2(pitch, roll) + math.pi / 4;
+      final foilPaint = Paint()
+        ..shader = SweepGradient(
+          center: Alignment(
+            (glareCenter.dx / w) * 2 - 1,
+            (glareCenter.dy / h) * 2 - 1,
+          ),
+          startAngle: holoAngle,
+          endAngle: holoAngle + math.pi * 2,
+          colors: epicColors.map((c) => c.withValues(alpha: 0.35)).toList(),
+        ).createShader(Rect.fromLTWH(0, 0, w, h))
+        ..blendMode = BlendMode.colorDodge;
+      canvas.drawRect(Rect.fromLTWH(0, 0, w, h), foilPaint);
 
-        if (proximity > 0.15) {
-          final intensity = math.pow(proximity, 2.5).toDouble();
-          final starSize = 1.2 + glitterRng.nextDouble() * 2.6 * intensity;
+      // Crystalline shattered facet grid
+      final facetPaint = Paint()..blendMode = BlendMode.screen;
+      const cols = 5;
+      const rows = 8;
+      final colW = w / cols;
+      final rowH = h / rows;
 
-          starPaint.color = (glitterRng.nextBool()
-                  ? Colors.white
-                  : rarity.color)
-              .withValues(alpha: (0.4 + intensity * 0.6).clamp(0.0, 1.0));
+      for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+          final fx = c * colW;
+          final fy = r * rowH;
+          final facetCenter = Offset(fx + colW / 2, fy + rowH / 2);
+          final dist = (facetCenter - glareCenter).distance;
+          final proximity = (1.0 - (dist / glareRadius)).clamp(0.0, 1.0);
 
-          // Draw micro 4-point sparkle cross
-          canvas.drawLine(
-            Offset(sx - starSize * 2, sy),
-            Offset(sx + starSize * 2, sy),
-            starPaint..strokeWidth = 0.8,
-          );
-          canvas.drawLine(
-            Offset(sx, sy - starSize * 2),
-            Offset(sx, sy + starSize * 2),
-            starPaint..strokeWidth = 0.8,
-          );
-          canvas.drawCircle(Offset(sx, sy), starSize * 0.5, starPaint);
+          if (proximity > 0.08) {
+            final intensity = math.pow(proximity, 1.8).toDouble();
+            final colorIdx = (r * 2 + c) % epicColors.length;
+            facetPaint.color = epicColors[colorIdx].withValues(
+              alpha: (0.12 + intensity * 0.50).clamp(0.0, 1.0),
+            );
+
+            final path = Path()
+              ..moveTo(fx + 2, fy + 2)
+              ..lineTo(fx + colW - 2, fy + rowH * 0.35)
+              ..lineTo(fx + colW * 0.65, fy + rowH - 2)
+              ..lineTo(fx + 2, fy + rowH - 2)
+              ..close();
+            canvas.drawPath(path, facetPaint);
+          }
         }
+      }
+
+      _drawStarGlitter(canvas, w, h, glareCenter, glareRadius,
+          count: 24, baseColor: const Color(0xFFE040FB));
+      return;
+    }
+
+    // 4. Legendary: Cosmic Starlight + Intense Rainbow Sweep + Chromatic Edge Glow
+    if (rarity == SynthRarity.legendary) {
+      final holoAngle = math.atan2(pitch, roll) + math.pi / 4;
+      final foilPaint = Paint()
+        ..shader = SweepGradient(
+          center: Alignment(
+            (glareCenter.dx / w) * 2 - 1,
+            (glareCenter.dy / h) * 2 - 1,
+          ),
+          startAngle: holoAngle,
+          endAngle: holoAngle + math.pi * 2,
+          colors: SynthRarity.rainbowColors
+              .map((c) => c.withValues(alpha: 0.50))
+              .toList(),
+        ).createShader(Rect.fromLTWH(0, 0, w, h))
+        ..blendMode = BlendMode.colorDodge;
+      canvas.drawRect(Rect.fromLTWH(0, 0, w, h), foilPaint);
+
+      // Chromatic perimeter edge reflection
+      final edgePaint = Paint()
+        ..shader = SweepGradient(
+          center: Alignment.center,
+          startAngle: holoAngle * 1.5,
+          endAngle: holoAngle * 1.5 + math.pi * 2,
+          colors: SynthRarity.rainbowColors
+              .map((c) => c.withValues(alpha: 0.65))
+              .toList(),
+        ).createShader(Rect.fromLTWH(0, 0, w, h))
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3.5
+        ..blendMode = BlendMode.screen;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(2, 2, w - 4, h - 4),
+          const Radius.circular(12),
+        ),
+        edgePaint,
+      );
+
+      _drawStarGlitter(canvas, w, h, glareCenter, glareRadius,
+          count: 48, baseColor: const Color(0xFFFFD500));
+    }
+  }
+
+  void _drawStarGlitter(
+    Canvas canvas,
+    double w,
+    double h,
+    Offset glareCenter,
+    double glareRadius, {
+    required int count,
+    required Color baseColor,
+  }) {
+    final glitterRng = math.Random(1337);
+    final starPaint = Paint()..blendMode = BlendMode.screen;
+
+    for (int i = 0; i < count; i++) {
+      final sx = glitterRng.nextDouble() * w;
+      final sy = glitterRng.nextDouble() * h;
+      final dist = (Offset(sx, sy) - glareCenter).distance;
+      final proximity = (1.0 - (dist / glareRadius)).clamp(0.0, 1.0);
+
+      if (proximity > 0.15) {
+        final intensity = math.pow(proximity, 2.5).toDouble();
+        final starSize = 1.2 + glitterRng.nextDouble() * 2.8 * intensity;
+
+        starPaint.color = (glitterRng.nextBool() ? Colors.white : baseColor)
+            .withValues(alpha: (0.4 + intensity * 0.6).clamp(0.0, 1.0));
+
+        // Draw micro 4-point sparkle cross
+        canvas.drawLine(
+          Offset(sx - starSize * 2, sy),
+          Offset(sx + starSize * 2, sy),
+          starPaint..strokeWidth = 0.8,
+        );
+        canvas.drawLine(
+          Offset(sx, sy - starSize * 2),
+          Offset(sx, sy + starSize * 2),
+          starPaint..strokeWidth = 0.8,
+        );
+        canvas.drawCircle(Offset(sx, sy), starSize * 0.5, starPaint);
       }
     }
   }

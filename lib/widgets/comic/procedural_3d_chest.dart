@@ -92,6 +92,7 @@ class _Procedural3dChestState extends State<Procedural3dChest>
   @override
   Widget build(BuildContext context) {
     final rarityColor = widget.rarity.color;
+    final isLegendary = widget.rarity == SynthRarity.legendary;
 
     return AnimatedBuilder(
       animation: Listenable.merge([_lidController, _idleFloatController]),
@@ -122,18 +123,36 @@ class _Procedural3dChestState extends State<Procedural3dChest>
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(100),
                         boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.55),
+                          const BoxShadow(
+                            color: Colors.black54,
                             blurRadius: 18,
                             spreadRadius: 4,
                           ),
-                          BoxShadow(
-                            color: rarityColor.withValues(
-                              alpha: 0.15 + (widget.tapsDone * 0.06),
+                          if (isLegendary) ...[
+                            BoxShadow(
+                              color: const Color(0xFFFF0055).withValues(
+                                alpha: 0.25 + (widget.tapsDone * 0.08),
+                              ),
+                              blurRadius: 28,
+                              spreadRadius: 6,
+                              offset: const Offset(-6, 0),
                             ),
-                            blurRadius: 28,
-                            spreadRadius: 6,
-                          ),
+                            BoxShadow(
+                              color: const Color(0xFF00E5FF).withValues(
+                                alpha: 0.25 + (widget.tapsDone * 0.08),
+                              ),
+                              blurRadius: 28,
+                              spreadRadius: 6,
+                              offset: const Offset(6, 0),
+                            ),
+                          ] else
+                            BoxShadow(
+                              color: rarityColor.withValues(
+                                alpha: 0.15 + (widget.tapsDone * 0.06),
+                              ),
+                              blurRadius: 28,
+                              spreadRadius: 6,
+                            ),
                         ],
                       ),
                     ),
@@ -147,7 +166,10 @@ class _Procedural3dChestState extends State<Procedural3dChest>
                         opacity: _interiorLight.value.clamp(0.0, 1.0),
                         child: CustomPaint(
                           size: Size(widget.width * 1.4, widget.height * 1.6),
-                          painter: _VolumetricLightPainter(color: rarityColor),
+                          painter: _VolumetricLightPainter(
+                            color: rarityColor,
+                            isLegendary: isLegendary,
+                          ),
                         ),
                       ),
                     ),
@@ -161,6 +183,7 @@ class _Procedural3dChestState extends State<Procedural3dChest>
                       tapsDone: widget.tapsDone,
                       rarityColor: rarityColor,
                       isOpen: _lidAngle.value < -0.1,
+                      isLegendary: isLegendary,
                     ),
                   ),
 
@@ -178,6 +201,7 @@ class _Procedural3dChestState extends State<Procedural3dChest>
                         tapsDone: widget.tapsDone,
                         rarityColor: rarityColor,
                         isOpened: widget.isOpened,
+                        isLegendary: isLegendary,
                       ),
                     ),
                   ),
@@ -215,6 +239,7 @@ class _ChestBaseWidget extends StatelessWidget {
     required this.tapsDone,
     required this.rarityColor,
     required this.isOpen,
+    this.isLegendary = false,
   });
 
   final double width;
@@ -222,6 +247,7 @@ class _ChestBaseWidget extends StatelessWidget {
   final int tapsDone;
   final Color rarityColor;
   final bool isOpen;
+  final bool isLegendary;
 
   @override
   Widget build(BuildContext context) {
@@ -254,10 +280,17 @@ class _ChestBaseWidget extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      rarityColor.withValues(alpha: 0.95),
-                      const Color(0xFF1A0A05),
-                    ],
+                    colors: isLegendary
+                        ? const [
+                            Color(0xFFFF0055),
+                            Color(0xFFFFD500),
+                            Color(0xFF00E5FF),
+                            Color(0xFF1A0A05),
+                          ]
+                        : [
+                            rarityColor.withValues(alpha: 0.95),
+                            const Color(0xFF1A0A05),
+                          ],
                   ),
                 ),
               ),
@@ -270,6 +303,7 @@ class _ChestBaseWidget extends StatelessWidget {
               tapsDone: tapsDone,
               rarityColor: rarityColor,
               isLid: false,
+              isLegendary: isLegendary,
             ),
           ),
 
@@ -336,6 +370,7 @@ class _ChestLidWidget extends StatelessWidget {
     required this.tapsDone,
     required this.rarityColor,
     required this.isOpened,
+    this.isLegendary = false,
   });
 
   final double width;
@@ -343,6 +378,7 @@ class _ChestLidWidget extends StatelessWidget {
   final int tapsDone;
   final Color rarityColor;
   final bool isOpened;
+  final bool isLegendary;
 
   @override
   Widget build(BuildContext context) {
@@ -370,6 +406,7 @@ class _ChestLidWidget extends StatelessWidget {
               tapsDone: tapsDone,
               rarityColor: rarityColor,
               isLid: true,
+              isLegendary: isLegendary,
             ),
           ),
 
@@ -559,11 +596,13 @@ class _ChestFacePainter extends CustomPainter {
   final int tapsDone;
   final Color rarityColor;
   final bool isLid;
+  final bool isLegendary;
 
   _ChestFacePainter({
     required this.tapsDone,
     required this.rarityColor,
     required this.isLid,
+    this.isLegendary = false,
   });
 
   @override
@@ -580,10 +619,19 @@ class _ChestFacePainter extends CustomPainter {
     // 2. Procedural Glowing Fracture Cracks
     if (tapsDone > 0) {
       final glowPaint = Paint()
-        ..color = rarityColor.withValues(alpha: 0.85)
         ..strokeWidth = 3.5
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
+
+      if (isLegendary) {
+        glowPaint.shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: SynthRarity.rainbowColors,
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+      } else {
+        glowPaint.color = rarityColor.withValues(alpha: 0.85);
+      }
 
       final corePaint = Paint()
         ..color = Colors.white
@@ -640,13 +688,16 @@ class _ChestFacePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ChestFacePainter old) =>
-      old.tapsDone != tapsDone || old.rarityColor != rarityColor;
+      old.tapsDone != tapsDone ||
+      old.rarityColor != rarityColor ||
+      old.isLegendary != isLegendary;
 }
 
 /// Volumetric light fan expanding upwards from the open chest.
 class _VolumetricLightPainter extends CustomPainter {
   final Color color;
-  _VolumetricLightPainter({required this.color});
+  final bool isLegendary;
+  _VolumetricLightPainter({required this.color, this.isLegendary = false});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -659,15 +710,27 @@ class _VolumetricLightPainter extends CustomPainter {
       ..lineTo(bottomCenter.dx + 40, bottomCenter.dy)
       ..close();
 
-    final gradient = RadialGradient(
-      center: Alignment.bottomCenter,
-      radius: 0.95,
-      colors: [
-        color.withValues(alpha: 0.50),
-        color.withValues(alpha: 0.18),
-        Colors.transparent,
-      ],
-    );
+    final Gradient gradient = isLegendary
+        ? const LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [
+              Color(0xFFFF0055),
+              Color(0xFFFFD500),
+              Color(0xFF00FF88),
+              Color(0xFF00E5FF),
+              Color(0xFF7C4DFF),
+            ],
+          )
+        : RadialGradient(
+            center: Alignment.bottomCenter,
+            radius: 0.95,
+            colors: [
+              color.withValues(alpha: 0.50),
+              color.withValues(alpha: 0.18),
+              Colors.transparent,
+            ],
+          );
 
     final paint = Paint()
       ..shader = gradient.createShader(Rect.fromLTWH(0, 0, size.width, size.height))
@@ -677,5 +740,6 @@ class _VolumetricLightPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _VolumetricLightPainter old) => old.color != color;
+  bool shouldRepaint(covariant _VolumetricLightPainter old) =>
+      old.color != color || old.isLegendary != isLegendary;
 }

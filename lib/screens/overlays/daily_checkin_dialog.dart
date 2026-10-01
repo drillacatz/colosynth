@@ -1,11 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:colosynth/providers/daily_checkin_provider.dart';
 import 'package:colosynth/services/daily_checkin_service.dart';
-import 'package:colosynth/services/audio_service.dart';
-import 'package:colosynth/game_settings.dart';
 import 'package:colosynth/screens/theme/tokens.dart';
+import 'package:colosynth/screens/overlays/claim_reward_overlay.dart';
 
 class DailyCheckInDialog extends ConsumerWidget {
   const DailyCheckInDialog({super.key});
@@ -17,6 +17,23 @@ class DailyCheckInDialog extends ConsumerWidget {
       barrierColor: Colors.black.withValues(alpha: 0.75),
       builder: (_) => const DailyCheckInDialog(),
     );
+  }
+
+  static void _showClaimReward(
+    BuildContext context,
+    CheckInReward reward, {
+    int multiplier = 1,
+    String title = 'CHECK-IN REWARD!',
+  }) {
+    unawaited(ClaimRewardOverlay.show(
+      context,
+      title: title,
+      inkReward: reward.ink * multiplier,
+      paintReward: reward.paint * multiplier,
+      expItems: reward.itemKey != null && reward.itemCount > 0
+          ? {reward.itemKey!: reward.itemCount * multiplier}
+          : const {},
+    ));
   }
 
   @override
@@ -350,10 +367,10 @@ class DailyCheckInDialog extends ConsumerWidget {
                     ComicButton.playButtonSfx();
                     final ok = await notifier.claimTomorrowWithAd();
                     if (ok && context.mounted) {
-                      AudioService.instance.playSfx(SfxEvent.reward);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Tomorrow\'s Reward Pre-Claimed!')),
+                      _showClaimReward(
+                        context,
+                        reward,
+                        title: 'PRE-CLAIM REWARD!',
                       );
                     }
                   },
@@ -402,11 +419,14 @@ class DailyCheckInDialog extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             onTap: () async {
               ComicButton.playButtonSfx();
+              final currentReward =
+                  DailyCheckInService.instance.getRewardForDay(state.currentCycleDay);
               final ok = await notifier.makeUpWithAd();
               if (ok && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Streak Restored & Reward Claimed!')),
+                _showClaimReward(
+                  context,
+                  currentReward,
+                  title: 'CHECK-IN REWARD!',
                 );
               }
             },
@@ -419,7 +439,16 @@ class DailyCheckInDialog extends ConsumerWidget {
             ),
             onPressed: () async {
               ComicButton.playButtonSfx();
-              await notifier.claimToday();
+              final day1Reward =
+                  DailyCheckInService.instance.getRewardForDay(1);
+              final ok = await notifier.claimToday();
+              if (ok && context.mounted) {
+                _showClaimReward(
+                  context,
+                  day1Reward,
+                  title: 'CHECK-IN REWARD!',
+                );
+              }
             },
             child: const Text(
               'Reset to Day 1 and Claim Normal',
@@ -448,12 +477,15 @@ class DailyCheckInDialog extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
             onTap: () async {
               ComicButton.playButtonSfx();
+              final currentReward =
+                  DailyCheckInService.instance.getRewardForDay(state.currentCycleDay);
               final ok = await notifier.claimTodayWithDoubleAd();
               if (ok && context.mounted) {
-                AudioService.instance.playSfx(SfxEvent.reward);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('2X Reward Claimed Successfully!')),
+                _showClaimReward(
+                  context,
+                  currentReward,
+                  multiplier: 2,
+                  title: '2X CHECK-IN REWARD!',
                 );
               }
             },
@@ -466,11 +498,14 @@ class DailyCheckInDialog extends ConsumerWidget {
             ),
             onPressed: () async {
               ComicButton.playButtonSfx();
+              final currentReward =
+                  DailyCheckInService.instance.getRewardForDay(state.currentCycleDay);
               final ok = await notifier.claimToday();
               if (ok && context.mounted) {
-                AudioService.instance.playSfx(SfxEvent.reward);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Reward Claimed Successfully!')),
+                _showClaimReward(
+                  context,
+                  currentReward,
+                  title: 'CHECK-IN REWARD!',
                 );
               }
             },
@@ -527,11 +562,16 @@ class DailyCheckInDialog extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
             onTap: () async {
               ComicButton.playButtonSfx();
+              int claimedDay = state.currentCycleDay - 1;
+              if (claimedDay < 1) claimedDay = 7;
+              final claimedReward =
+                  DailyCheckInService.instance.getRewardForDay(claimedDay);
               final ok = await notifier.claimDoubleWithAd();
               if (ok && context.mounted) {
-                AudioService.instance.playSfx(SfxEvent.reward);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Reward Doubled!')),
+                _showClaimReward(
+                  context,
+                  claimedReward,
+                  title: '2X CHECK-IN REWARD!',
                 );
               }
             },

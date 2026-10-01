@@ -76,74 +76,34 @@ class SynthCardShowcaseOverlay extends StatelessWidget {
           SafeArea(
             child: Column(
               children: [
-                // Top Header Bar
+                // Top Close Button
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        Navigator.of(context).pop();
+                      },
+                      child: Container(
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
                           color: AppColors.paperWhite,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: AppColors.ink, width: 1.5),
-                        ),
-                        child: const Icon(
-                          Icons.style,
-                          color: AppColors.ink,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'SYNTH ARCHIVE // POKEBOX 3D',
-                              style: TextStyle(
-                                fontFamily: 'Bangers',
-                                fontSize: 18,
-                                letterSpacing: 1.5,
-                                color: AppColors.paperWhite,
-                              ),
-                            ),
-                            Text(
-                              'INTERACTIVE HOLOGRAPHIC CARD SHOWCASE',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                                color: Colors.white60,
-                              ),
-                            ),
+                          border: Border.all(color: AppColors.ink, width: 2),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black54, offset: Offset(2, 2)),
                           ],
                         ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          Navigator.of(context).pop();
-                        },
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: AppColors.paperWhite,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: AppColors.ink, width: 2),
-                            boxShadow: const [
-                              BoxShadow(color: Colors.black54, offset: Offset(2, 2)),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            color: AppColors.ink,
-                            size: 20,
-                          ),
+                        child: const Icon(
+                          Icons.close,
+                          color: AppColors.ink,
+                          size: 20,
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
 

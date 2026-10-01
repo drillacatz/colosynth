@@ -22,6 +22,7 @@ import 'package:colosynth/game/components/player_component.dart';
 import 'package:colosynth/game/logic/battle_constants.dart';
 import 'package:colosynth/game/logic/battle_engine.dart';
 import 'package:colosynth/game/logic/battle_state_machine.dart';
+import 'package:colosynth/game_data/tier_enemy_stats.dart';
 import 'package:flutter/material.dart' show Color;
 import 'package:colosynth/game/logic/combat_input_handler.dart';
 import 'package:colosynth/game/logic/direction.dart';
@@ -163,6 +164,9 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
   bool get isAntiSpamRecoil => _isAntiSpamRecoil;
 
   @override
+  Color backgroundColor() => const Color(0x00000000);
+
+  @override
   Future<void> onLoad() async {
     PlayerStatsTracker.instance.startBattle();
     _damageNumberPool = ComponentPool<DamageNumber>(
@@ -173,10 +177,12 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
     _stats = BattleStatsTracker();
 
     final isBossSlot = slotId.contains('boss') || slotId.contains('extreme');
+    final isTutorial = slotId.startsWith('tutorial_') || mode == BattleMode.tutorial;
     _enemyComponent = EnemyComponent(
       profile: aiProfile,
       tournamentTier: tier,
       isBoss: isBossSlot,
+      stats: isTutorial ? TierEnemyStats.tutorial : null,
     );
     _playerComponent = PlayerComponent(
       playerStats: playerStats,

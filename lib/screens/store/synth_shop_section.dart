@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:colosynth/providers/save_provider.dart';
 import 'package:colosynth/screens/overlays/synth_crate_opening_overlay.dart';
 import 'package:colosynth/screens/theme/tokens.dart';
+import 'package:colosynth/screens/overlays/claim_reward_overlay.dart';
 import 'package:colosynth/screens/overlays/locked_feature_overlay.dart';
 
 
@@ -213,13 +214,11 @@ class _SynthCrateSectionState extends ConsumerState<SynthCrateSection> {
 
     await ref.read(synthKeysProvider.notifier).award(1);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Purchased 1 Synth Key!'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Color(0xFFFF6D00),
-        ),
-      );
+      unawaited(ClaimRewardOverlay.show(
+        context,
+        title: 'PURCHASE SUCCESSFUL!',
+        synthKeys: 1,
+      ));
     }
   }
 

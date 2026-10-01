@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'package:colosynth/database/character/battle_stats.dart';
@@ -6,9 +7,13 @@ import 'package:colosynth/game_data/battle_anim.dart';
 import 'package:colosynth/game/logic/battle_constants.dart';
 import 'package:colosynth/game/logic/battle_state_machine.dart';
 import 'package:colosynth/game/components/slash_effect.dart';
+import 'package:colosynth/game/components/parry_particle.dart';
 import 'package:colosynth/game/logic/direction.dart';
 import 'package:flame/components.dart';
+import 'package:flame/flame.dart';
 import 'package:colosynth/services/sprite_repository.dart';
+import 'package:colosynth/services/audio_service.dart';
+import 'package:colosynth/game_settings.dart' show SfxEvent;
 
 class PlayerComponent extends PositionComponent
     with HasGameReference<BattleWorld>
@@ -35,12 +40,10 @@ class PlayerComponent extends PositionComponent
   late final TextComponent _stateText;
   bool _fsmListenerAdded = false;
 
-  SpriteComponent? _blockSprite;
+  late final PlayerShieldBarrierComponent _shieldBarrier;
   late final StateAnimationController _animCtrl;
 
-
   final _labelPaints = <BattleState, TextPaint>{};
-  final _blockPaint = Paint()..color = const Color(0xDDFFFFFF);
 
   @override
   int get currentHp => _currentHp;
@@ -114,17 +117,7 @@ class PlayerComponent extends PositionComponent
     );
     add(_stateText);
 
-    try {
-      final blockSpriteData = await Sprite.load(SpriteRepository.blockEffect);
-      _blockSprite = SpriteComponent(
-        sprite: blockSpriteData,
-        size: Vector2(size.x * 2.0, size.y * 0.85),
-        position: Vector2(size.x / 2, size.y * 0.38),
-        anchor: Anchor.center,
-        priority: 20,
-        paint: _blockPaint,
-      );
-    } catch (_) {}
+    _shieldBarrier = PlayerShieldBarrierComponent(parentSize: size);
 
 
     world.fsm.addListener(_onFsmChanged);
@@ -151,6 +144,9 @@ class PlayerComponent extends PositionComponent
   @override
   void update(double dt) {
     _updateDodgeWindow(dt);
+    if (_isBlocking && world.stamina.isExhausted) {
+      _breakShield();
+    }
   }
 
   void _updateDodgeWindow(double dt) {
@@ -164,38 +160,47 @@ class PlayerComponent extends PositionComponent
     }
   }
 
-  static String _playerLabel(BattleState s) => switch (s) {
-        BattleState.idle => 'IDLE',
-        BattleState.playerSlash => 'SLASH',
-        BattleState.blockedRecoil => 'BLOCKED',
-        BattleState.parrySuccess => 'PARRY!',
-        BattleState.blockSuccess => 'BLOCK',
-        BattleState.dodgeSuccess => 'DODGE',
-        BattleState.dodgeFail => 'MISS!',
-        BattleState.activeSkill => 'SKILL!!',
-        BattleState.playerHurt => 'HIT',
-        BattleState.enemyHit => 'READY',
-        BattleState.enemyTelegraph => 'READY',
-        BattleState.enemyHurt => 'READY',
-        BattleState.victory => 'WIN',
-        BattleState.defeat => 'DEAD',
-        BattleState.counterWindow => 'COUNTER!',
-      };
+  String _playerLabel(BattleState s) {
+    if (_isBlocking && s != BattleState.counterWindow && s != BattleState.defeat) {
+      return 'GUARD';
+    }
+    return switch (s) {
+      BattleState.idle => 'IDLE',
+      BattleState.playerSlash => 'SLASH',
+      BattleState.blockedRecoil => 'BLOCKED',
+      BattleState.parrySuccess => 'PARRY!',
+      BattleState.blockSuccess => 'BLOCK',
+      BattleState.dodgeSuccess => 'DODGE',
+      BattleState.dodgeFail => 'MISS!',
+      BattleState.activeSkill => 'SKILL!!',
+      BattleState.playerHurt => 'HIT',
+      BattleState.enemyHit => 'READY',
+      BattleState.enemyTelegraph => 'READY',
+      BattleState.enemyHurt => 'READY',
+      BattleState.victory => 'WIN',
+      BattleState.defeat => 'DEAD',
+      BattleState.counterWindow => 'COUNTER!',
+    };
+  }
 
-  static Color _playerLabelColor(BattleState s) => switch (s) {
-        BattleState.parrySuccess => const Color(0xFF00E5FF),
-        BattleState.activeSkill => const Color(0xFFFFAA00),
-        BattleState.playerHurt => const Color(0xFFFF4444),
-        BattleState.dodgeFail => const Color(0xFFFF4444),
-        BattleState.defeat => const Color(0xFF880000),
-        BattleState.blockedRecoil => const Color(0xFFFF8800),
-        BattleState.victory => const Color(0xFF00E5FF),
-        _ => const Color(0xFF4AB8FF),
-      };
+  Color _playerLabelColor(BattleState s) {
+    if (_isBlocking && s != BattleState.counterWindow && s != BattleState.defeat) {
+      return const Color(0xFF00E5FF);
+    }
+    return switch (s) {
+      BattleState.parrySuccess => const Color(0xFF00E5FF),
+      BattleState.activeSkill => const Color(0xFFFFAA00),
+      BattleState.playerHurt => const Color(0xFFFF4444),
+      BattleState.dodgeFail => const Color(0xFFFF4444),
+      BattleState.defeat => const Color(0xFF880000),
+      BattleState.blockedRecoil => const Color(0xFFFF8800),
+      BattleState.victory => const Color(0xFF00E5FF),
+      _ => const Color(0xFF4AB8FF),
+    };
+  }
 
   void _onFsmChanged(BattleState prev, BattleState next) {
-    _stateText.text = _playerLabel(next);
-    _stateText.textRenderer = _getLabelPaint(next);
+    _refreshStateLabel();
 
     switch (next) {
       case BattleState.playerSlash:
@@ -215,8 +220,14 @@ class PlayerComponent extends PositionComponent
         break;
     }
 
-    if (next == BattleState.enemyHit || next == BattleState.playerHurt || next == BattleState.blockedRecoil) {
-      _removeBlockSprite();
+    if (next == BattleState.enemyHit ||
+        next == BattleState.playerHurt ||
+        next == BattleState.blockedRecoil) {
+      if (_isBlocking) {
+        _breakShield();
+      } else {
+        _removeShieldBarrier();
+      }
     }
   }
 
@@ -252,25 +263,49 @@ class PlayerComponent extends PositionComponent
   void playAnimation(CombatAnimation anim) => _animCtrl.play(anim);
 
   void startBlock() {
+    if (isDead || world.stamina.isExhausted) return;
     _isBlocking = true;
     world.stamina.setBlocking(true);
-    _addBlockSprite();
+    _addShieldBarrier();
+    _refreshStateLabel();
   }
 
   void endBlock() {
     _isBlocking = false;
     world.stamina.setBlocking(false);
-    _removeBlockSprite();
+    _removeShieldBarrier();
+    _refreshStateLabel();
   }
 
-  void _addBlockSprite() {
-    final bs = _blockSprite;
-    if (bs == null) return;
-    if (!bs.isMounted) add(bs);
+  void _addShieldBarrier() {
+    if (!_shieldBarrier.isMounted) {
+      add(_shieldBarrier);
+    }
   }
 
-  void _removeBlockSprite() {
-    _blockSprite?.removeFromParent();
+  void _removeShieldBarrier() {
+    if (_shieldBarrier.isMounted) {
+      _shieldBarrier.removeFromParent();
+    }
+  }
+
+  void _breakShield() {
+    if (!_isBlocking) return;
+    _removeShieldBarrier();
+    _isBlocking = false;
+    world.stamina.setBlocking(false);
+    AudioService.instance.playSfx(SfxEvent.parry);
+    if (isMounted && parent != null) {
+      spawnParryParticles(parent!, position - Vector2(0, size.y * 0.4));
+    }
+    _refreshStateLabel();
+  }
+
+  void _refreshStateLabel() {
+    if (!_fsmListenerAdded) return;
+    final s = world.fsm.current;
+    _stateText.text = _playerLabel(s);
+    _stateText.textRenderer = _getLabelPaint(s);
   }
 
   void startDodge() {
@@ -291,7 +326,7 @@ class PlayerComponent extends PositionComponent
     _isDodging = false;
     _dodgeIsLeft = null;
     _dodgeTimer = 0;
-    _removeBlockSprite();
+    _removeShieldBarrier();
     hpNotifier.value = _currentHp;
     if (_fsmListenerAdded) {
       _stateText.text = _playerLabel(BattleState.idle);
@@ -307,7 +342,7 @@ class PlayerComponent extends PositionComponent
     _originalX = PlayerConstants.startX;
     _dodgeTimer = 0;
     position.x = PlayerConstants.startX;
-    _removeBlockSprite();
+    _removeShieldBarrier();
     hpNotifier.value = _currentHp;
     _animCtrl.play(CombatAnimation.idle);
     if (_fsmListenerAdded) {
@@ -348,5 +383,113 @@ class _GroundShadow extends PositionComponent {
       _shadowRect,
       _shadowPaint,
     );
+  }
+}
+
+class PlayerShieldBarrierComponent extends PositionComponent
+    with HasGameReference<BattleWorld> {
+  PlayerShieldBarrierComponent({
+    required Vector2 parentSize,
+  }) : super(
+          size: Vector2(parentSize.x * 1.5, parentSize.y * 0.95),
+          position: Vector2(parentSize.x / 2, parentSize.y * 0.42),
+          anchor: Anchor.center,
+          priority: 25,
+        );
+
+  double _timer = 0.0;
+  SpriteAnimationComponent? _vfxAnim;
+
+  final Paint _fillPaint = Paint()
+    ..color = const Color(0x3300E5FF)
+    ..style = PaintingStyle.fill;
+
+  final Paint _strokePaint = Paint()
+    ..color = const Color(0xFF00E5FF)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3.0;
+
+  final Paint _glowPaint = Paint()
+    ..color = const Color(0x6600E5FF)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 8.0
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+
+  final Paint _gridPaint = Paint()
+    ..color = const Color(0x44FFFFFF)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5;
+
+  @override
+  Future<void> onLoad() async {
+    super.onLoad();
+    try {
+      final image = await Flame.images.load(SpriteRepository.blockEffect);
+      _vfxAnim = SpriteAnimationComponent(
+        animation: SpriteAnimation.fromFrameData(
+          image,
+          SpriteAnimationData.sequenced(
+            amount: 16,
+            amountPerRow: 4,
+            stepTime: 0.04,
+            textureSize: Vector2(128, 128),
+            loop: true,
+          ),
+        ),
+        size: Vector2.all(size.x * 0.95),
+        position: Vector2(size.x / 2, size.y / 2),
+        anchor: Anchor.center,
+        priority: 1,
+      );
+      add(_vfxAnim!);
+    } catch (_) {}
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _timer += dt * 4.5;
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final pulse = 0.97 + 0.03 * math.sin(_timer);
+    final w = size.x;
+    final h = size.y;
+    final cx = w / 2;
+    final cy = h / 2;
+
+    canvas.save();
+    canvas.translate(cx, cy);
+    canvas.scale(pulse, pulse);
+    canvas.translate(-cx, -cy);
+
+    final path = Path();
+    path.moveTo(w * 0.15, 0);
+    path.lineTo(w * 0.85, 0);
+    path.lineTo(w, h * 0.35);
+    path.lineTo(w * 0.85, h * 0.85);
+    path.lineTo(cx, h);
+    path.lineTo(w * 0.15, h * 0.85);
+    path.lineTo(0, h * 0.35);
+    path.close();
+
+    canvas.drawPath(path, _glowPaint);
+    canvas.drawPath(path, _fillPaint);
+    canvas.drawPath(path, _strokePaint);
+
+    for (double y = h * 0.15; y <= h * 0.85; y += 16.0) {
+      final lineW = (1.0 - ((y - cy).abs() / cy)) * (w * 0.75);
+      if (lineW > 0) {
+        canvas.drawLine(
+          Offset(cx - lineW / 2, y),
+          Offset(cx + lineW / 2, y),
+          _gridPaint,
+        );
+      }
+    }
+
+    canvas.restore();
+    super.render(canvas);
   }
 }

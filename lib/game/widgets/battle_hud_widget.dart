@@ -186,9 +186,9 @@ class _VerticalHpBar extends StatelessWidget {
   Color get _barColor {
     final safeMax = max < 1 ? 1 : max;
     final r = current / safeMax;
-    if (r > 0.5) return AppColors.ink;
-    if (r > 0.25) return AppColors.darkGray;
-    return AppColors.sketchGray;
+    if (r > 0.5) return const Color(0xFF00E676);
+    if (r > 0.25) return const Color(0xFFFFD600);
+    return const Color(0xFFFF3333);
   }
 
   @override

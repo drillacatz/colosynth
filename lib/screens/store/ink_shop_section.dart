@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:colosynth/game_data/store_data.dart';
 import 'package:colosynth/providers/store_provider.dart';
 import 'package:colosynth/services/iap_service.dart';
+import 'package:colosynth/screens/overlays/claim_reward_overlay.dart';
 import 'package:colosynth/screens/overlays/locked_feature_overlay.dart';
 import 'package:colosynth/screens/theme/tokens.dart';
 import 'package:colosynth/screens/store/shop_card.dart';
@@ -70,7 +71,13 @@ class InkBundleGridCard extends ConsumerWidget {
     unawaited(HapticFeedback.mediumImpact());
     final result = await ref.read(storeControllerProvider).buyBundle(bundle.productId);
     if (!context.mounted) return;
-    if (result is IapError) {
+    if (result is IapSuccess) {
+      unawaited(ClaimRewardOverlay.show(
+        context,
+        title: 'PURCHASE SUCCESSFUL!',
+        inkReward: bundle.ink,
+      ));
+    } else if (result is IapError) {
       unawaited(LockedFeatureOverlay.show(
         context,
         customTitle: 'Purchase Failed',
@@ -128,7 +135,16 @@ class AdFreeShopCard extends ConsumerWidget {
     unawaited(HapticFeedback.mediumImpact());
     final result = await ref.read(storeControllerProvider).buyBundle(productId);
     if (!context.mounted) return;
-    if (result is IapError) {
+    if (result is IapSuccess) {
+      final deluxeBundle = StoreData.adFreeDeluxeBundle;
+      unawaited(ClaimRewardOverlay.show(
+        context,
+        title: 'PURCHASE SUCCESSFUL!',
+        isAdFreeUnlocked: true,
+        inkReward: isDeluxe ? deluxeBundle.ink : 0,
+        paintReward: isDeluxe ? deluxeBundle.paint : 0,
+      ));
+    } else if (result is IapError) {
       unawaited(LockedFeatureOverlay.show(
         context,
         customTitle: 'Purchase Failed',

@@ -129,12 +129,12 @@ class _MusicScreenState extends ConsumerState<MusicScreen> {
           return Stack(
             children: [
               const Positioned.fill(child: NotebookBackground()),
-              // Main layout: 3D vinyl disc carousel + Slingshot volume game
+              // Main layout: Center Vinyl Player + Slingshot Volume Game
               Column(
                 children: [
                   Expanded(
                     flex: 6,
-                    child: _SurroundVinylCarousel(
+                    child: _TurntableVinylPlayer(
                       activeTrackType: activeTrackType,
                       currentBgmType: settings.selectedLobbyBgm,
                       previewingType: _previewingLobbyType,
@@ -165,15 +165,17 @@ class _MusicScreenState extends ConsumerState<MusicScreen> {
   }
 }
 
-// ─────────────────────── _SurroundVinylCarousel ──────────────────────────────
+// ─────────────────────── _TurntableVinylPlayer ───────────────────────────────
 //
-// 3D amphitheater carousel presenting comic album sleeve cards with vinyl discs.
-// Discs rotate in real-time when the user scrolls/swipes horizontally, and also
-// spin smoothly while audio preview/playback is active.
+// Central vinyl player deck with standalone sliding vinyl discs (no cards).
+// Swiping moves discs smoothly in and out of the turntable.
+// Stylus tonearm is mounted at the TOP of the vinyl player, angling onto the record
+// strictly when playing, and lifting up to a top rest post when paused.
+// Interactive progress bar below the player shows elapsed/duration with scrub support.
 //
 
-class _SurroundVinylCarousel extends StatefulWidget {
-  const _SurroundVinylCarousel({
+class _TurntableVinylPlayer extends StatefulWidget {
+  const _TurntableVinylPlayer({
     required this.activeTrackType,
     required this.currentBgmType,
     required this.previewingType,
@@ -192,24 +194,42 @@ class _SurroundVinylCarousel extends StatefulWidget {
   final VoidCallback onSetAsBgm;
 
   @override
-  State<_SurroundVinylCarousel> createState() => _SurroundVinylCarouselState();
+  State<_TurntableVinylPlayer> createState() => _TurntableVinylPlayerState();
 }
 
-class _SurroundVinylCarouselState extends State<_SurroundVinylCarousel>
+class _TurntableVinylPlayerState extends State<_TurntableVinylPlayer>
     with TickerProviderStateMixin {
   late double _scroll;
-  double _scrollAngle = 0.0; // Dynamic turntable rotation on swipe/drag
-  double _playbackAngle = 0.0; // Continuous rotation during playback
+  double _scrollAngle = 0.0;
+  double _playbackAngle = 0.0;
 
   late AnimationController _snapCtrl;
   Animation<double>? _snapAnim;
   double _snapFrom = 0.0;
   double _snapTo = 0.0;
 
+  // Stylus controller: 0.0 = on record (playing), 1.0 = lifted/parked (paused)
+  late AnimationController _stylusCtrl;
+
   late Ticker _spinTicker;
   Duration _prevElapsed = Duration.zero;
 
+  // Audio streams & state
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
+  bool _isPlaying = false;
+  bool _isScrubbing = false;
+  StreamSubscription? _posSub, _durSub, _stateSub;
+
   static const double _kRadPerSec = 33.3 / 60.0 * 2.0 * math.pi;
+
+  AudioPlayer get _activePlayer {
+    if (widget.previewingType != null) {
+      return AudioService.instance.activePreviewPlayer ??
+          FlameAudio.bgm.audioPlayer;
+    }
+    return FlameAudio.bgm.audioPlayer;
+  }
 
   @override
   void initState() {
@@ -217,6 +237,13 @@ class _SurroundVinylCarouselState extends State<_SurroundVinylCarousel>
     final initialIdx = AudioRepository.musicLibrary.indexWhere(
         (t) => t.type == widget.activeTrackType);
     _scroll = (initialIdx >= 0 ? initialIdx : 0).toDouble();
+
+    // Start with stylus parked (1.0 = paused/lifted)
+    _stylusCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+      value: 1.0,
+    );
 
     _snapCtrl = AnimationController(
       vsync: this,
@@ -242,18 +269,68 @@ class _SurroundVinylCarouselState extends State<_SurroundVinylCarousel>
       });
 
     _spinTicker = createTicker(_onSpinTick)..start();
+    _initStreams();
+  }
+
+  void _initStreams() {
+    final player = _activePlayer;
+    _isPlaying = player.state == PlayerState.playing;
+    _syncStylusToPlayState(_isPlaying, animate: false);
+
+    player.getCurrentPosition().then((p) {
+      if (mounted) setState(() => _position = p ?? Duration.zero);
+    });
+    player.getDuration().then((d) {
+      if (mounted) setState(() => _duration = d ?? Duration.zero);
+    });
+
+    _posSub = player.onPositionChanged.listen((p) {
+      if (mounted && !_isScrubbing) setState(() => _position = p);
+    });
+    _durSub = player.onDurationChanged.listen((d) {
+      if (mounted) setState(() => _duration = d);
+    });
+
+    // Strictly follow play/pause to render stylus properly
+    _stateSub = player.onPlayerStateChanged.listen((s) {
+      if (!mounted) return;
+      final playing = s == PlayerState.playing;
+      setState(() => _isPlaying = playing);
+      _syncStylusToPlayState(playing, animate: true);
+    });
+  }
+
+  void _syncStylusToPlayState(bool playing, {required bool animate}) {
+    if (playing) {
+      if (animate) {
+        _stylusCtrl.animateTo(0.0,
+            curve: Curves.easeOutBack,
+            duration: const Duration(milliseconds: 340));
+      } else {
+        _stylusCtrl.value = 0.0;
+      }
+    } else {
+      if (animate) {
+        _stylusCtrl.animateTo(1.0,
+            curve: Curves.easeOutCubic,
+            duration: const Duration(milliseconds: 280));
+      } else {
+        _stylusCtrl.value = 1.0;
+      }
+    }
+  }
+
+  void _cancelStreams() {
+    _posSub?.cancel();
+    _durSub?.cancel();
+    _stateSub?.cancel();
   }
 
   void _onSpinTick(Duration elapsed) {
     final dt = (elapsed - _prevElapsed).inMicroseconds / 1e6;
     _prevElapsed = elapsed;
 
-    final isPreviewing = widget.previewingType != null;
-    final player = AudioService.instance.activePreviewPlayer;
-    final isPlaying = isPreviewing &&
-        (player == null || player.state == PlayerState.playing);
-
-    if (isPlaying) {
+    if (_isPlaying) {
       setState(() {
         _playbackAngle += dt * _kRadPerSec;
       });
@@ -261,7 +338,7 @@ class _SurroundVinylCarouselState extends State<_SurroundVinylCarousel>
   }
 
   @override
-  void didUpdateWidget(covariant _SurroundVinylCarousel oldWidget) {
+  void didUpdateWidget(covariant _TurntableVinylPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.activeTrackType != widget.activeTrackType) {
       final targetIdx = AudioRepository.musicLibrary
@@ -270,11 +347,17 @@ class _SurroundVinylCarouselState extends State<_SurroundVinylCarousel>
         _animateTo(targetIdx.toDouble());
       }
     }
+    if (oldWidget.previewingType != widget.previewingType) {
+      _cancelStreams();
+      _initStreams();
+    }
   }
 
   @override
   void dispose() {
+    _cancelStreams();
     _spinTicker.dispose();
+    _stylusCtrl.dispose();
     _snapCtrl.dispose();
     super.dispose();
   }
@@ -291,6 +374,11 @@ class _SurroundVinylCarouselState extends State<_SurroundVinylCarousel>
     _snapCtrl.forward(from: 0.0);
   }
 
+  void _onPanStart(DragStartDetails _) {
+    // Lift stylus while dragging between tracks
+    _syncStylusToPlayState(false, animate: true);
+  }
+
   void _onPanUpdate(DragUpdateDetails details, double stepX) {
     if (stepX <= 0) return;
     final total = AudioRepository.musicLibrary.length;
@@ -299,7 +387,6 @@ class _SurroundVinylCarouselState extends State<_SurroundVinylCarousel>
 
     setState(() {
       _scroll = (_scroll - dScroll).clamp(0.0, (total - 1).toDouble());
-      // Dynamic vinyl rotation in response to horizontal finger drag
       _scrollAngle += -delta * 0.024;
     });
   }
@@ -310,12 +397,44 @@ class _SurroundVinylCarouselState extends State<_SurroundVinylCarousel>
 
     final velocity = details.velocity.pixelsPerSecond.dx;
     double target = _scroll;
-    if (velocity.abs() > 320) {
+    if (velocity.abs() > 300) {
       target = velocity > 0 ? (_scroll - 0.4).floorToDouble() : (_scroll + 0.4).ceilToDouble();
     } else {
       target = _scroll.roundToDouble();
     }
     _animateTo(target.clamp(0.0, (total - 1).toDouble()));
+  }
+
+  String _fmt(Duration d) {
+    final m = d.inMinutes;
+    final s = d.inSeconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  Duration _parseDuration(String s) {
+    try {
+      final parts = s.split(':');
+      if (parts.length == 2) {
+        return Duration(
+            minutes: int.parse(parts[0]), seconds: int.parse(parts[1]));
+      }
+    } catch (_) {}
+    return Duration.zero;
+  }
+
+  void _seekTo(double frac) {
+    final tracks = AudioRepository.musicLibrary;
+    final selectedIdx = _scroll.round().clamp(0, tracks.length - 1);
+    final track = tracks[selectedIdx];
+    final effectiveDur = _duration > Duration.zero
+        ? _duration
+        : _parseDuration(track.duration);
+    final totalMs = effectiveDur.inMilliseconds;
+    if (totalMs > 0) {
+      final targetMs = (totalMs * frac).round().clamp(0, totalMs);
+      setState(() => _position = Duration(milliseconds: targetMs));
+      _activePlayer.seek(Duration(milliseconds: targetMs));
+    }
   }
 
   @override
@@ -325,354 +444,542 @@ class _SurroundVinylCarouselState extends State<_SurroundVinylCarousel>
     final selectedIdx = _scroll.round().clamp(0, total - 1);
     final selectedTrack = tracks[selectedIdx];
     final isSelectedBgm = selectedTrack.type == widget.currentBgmType;
+    final activeColor = _trackColor(selectedTrack.type);
+
+    final effectiveDur = _duration > Duration.zero
+        ? _duration
+        : _parseDuration(selectedTrack.duration);
+    final totalMs = effectiveDur.inMilliseconds.toDouble();
+    final progress =
+        totalMs > 0 ? (_position.inMilliseconds / totalMs).clamp(0.0, 1.0) : 0.0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final W = constraints.maxWidth;
         final H = constraints.maxHeight;
-        final centerX = W / 2;
-        // Carousel cards centered horizontally in the upper region
-        final centerY = H * 0.38;
 
-        final cardWidth = math.min(W * 0.50, 185.0);
-        final cardHeight = math.min(H * 0.64, 215.0);
-        final stepX = cardWidth * 0.88;
+        // Player layout dimensions
+        final platterDia = (math.min(W * 0.44, H * 0.48)).clamp(115.0, 160.0);
+        final platterR = platterDia / 2;
+        // Turntable center in player area
+        final platterCenter = Offset(W / 2, H * 0.36);
 
-        // Build sorted card entries so center card paints on top
-        final entries = <_CardEntry>[];
+        final discSize = platterDia * 0.94;
+        final stepX = discSize * 1.15; // Horizontal slide distance between standalone discs
+
+        // Stylus mounted at the TOP of the vinyl player
+        // Pivot is mounted at top-right above the platter
+        final pivotX = platterCenter.dx + platterR * 0.45;
+        final pivotY = platterCenter.dy - platterR - 16.0;
+        final armLen = platterR * 1.12;
+
+        // Strictly follows _stylusCtrl:
+        // 0.0 (Playing) -> +0.28 rad (needle pointing down-left onto vinyl grooves)
+        // 1.0 (Paused)  -> -0.40 rad (needle lifted and parked outward to the right)
+        final stylusAngle = 0.28 - _stylusCtrl.value * 0.68;
+
+        // Build standalone vinyl disc entries
+        final discEntries = <_StandaloneDiscEntry>[];
         for (int i = 0; i < total; i++) {
           final delta = i - _scroll;
-          if (delta.abs() > 2.6) continue;
+          if (delta.abs() > 2.2) continue; // Out of view
           final dist = delta.abs();
-          final scale = (1.0 - (dist * 0.18)).clamp(0.64, 1.0);
-          final opacity = (1.0 - (dist * 0.38)).clamp(0.0, 1.0);
-          final dx = centerX + delta * stepX;
-          final yRotation = -delta * 0.28;
+          final scale = (1.0 - (dist * 0.20)).clamp(0.68, 1.0);
+          final opacity = (1.0 - (dist * 0.45)).clamp(0.0, 1.0);
+          final dx = platterCenter.dx + delta * stepX;
 
-          entries.add(_CardEntry(
+          discEntries.add(_StandaloneDiscEntry(
             index: i,
             dist: dist,
             dx: dx,
             scale: scale,
             opacity: opacity,
-            yRotation: yRotation,
             track: tracks[i],
           ));
         }
 
-        // Draw further cards first
-        entries.sort((a, b) => b.dist.compareTo(a.dist));
+        // Draw furthest discs first
+        discEntries.sort((a, b) => b.dist.compareTo(a.dist));
 
-        return GestureDetector(
-          onPanUpdate: (d) => _onPanUpdate(d, stepX),
-          onPanEnd: (d) => _onPanEnd(d, stepX),
-          behavior: HitTestBehavior.opaque,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // 3D Carousel Cards
-              for (final entry in entries)
-                Positioned(
-                  left: entry.dx - cardWidth / 2,
-                  top: centerY - cardHeight / 2,
-                  width: cardWidth,
-                  height: cardHeight,
-                  child: Opacity(
-                    opacity: entry.opacity,
-                    child: Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.identity()
-                        ..setEntry(3, 2, 0.0016)
-                        ..rotateY(entry.yRotation)
-                        ..scaleByDouble(entry.scale, entry.scale, 1.0, 1.0),
-                      child: _ComicVinylCard(
-                        track: entry.track,
-                        cardWidth: cardWidth,
-                        cardHeight: cardHeight,
-                        isFocused: entry.index == selectedIdx,
-                        isCurrentBgm: entry.track.type == widget.currentBgmType,
-                        isPreviewing: widget.previewingType == entry.track.type,
-                        scrollAngle: _scrollAngle,
-                        playbackAngle: _playbackAngle,
-                        onTapCard: () {
-                          ComicButton.playButtonSfx();
-                          if (entry.index != selectedIdx) {
-                            _animateTo(entry.index.toDouble());
-                          } else {
-                            widget.onTogglePreview(entry.track.type);
-                          }
-                        },
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // ── Turntable Deck Platter Base ───────────────────────────────
+            Positioned(
+              left: platterCenter.dx - platterR - 6,
+              top: platterCenter.dy - platterR - 6,
+              width: platterDia + 12,
+              height: platterDia + 12,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF222226),
+                  border: Border.all(color: _kInk, width: 2.2),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x44000000),
+                      blurRadius: 8,
+                      offset: Offset(2, 4),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Container(
+                    width: platterDia - 10,
+                    height: platterDia - 10,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.10),
+                        width: 1.5,
                       ),
                     ),
                   ),
                 ),
+              ),
+            ),
 
-              // Bottom control strip: Page dots + Set as BGM button
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 8,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+            // ── Standalone Vinyl Discs (Conveyor in/out of player) ─────────
+            Positioned(
+              left: 0,
+              right: 0,
+              top: platterCenter.dy - platterR - 10,
+              height: platterDia + 20,
+              child: GestureDetector(
+                onPanStart: _onPanStart,
+                onPanUpdate: (d) => _onPanUpdate(d, stepX),
+                onPanEnd: (d) => _onPanEnd(d, stepX),
+                behavior: HitTestBehavior.opaque,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
                   children: [
-                    // Dot indicators
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(total, (i) {
-                        final isSel = i == selectedIdx;
-                        final color = _trackColor(tracks[i].type);
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 220),
-                          margin: const EdgeInsets.symmetric(horizontal: 3),
-                          width: isSel ? 16 : 6,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: isSel ? color : _kInk.withValues(alpha: 0.20),
-                            borderRadius: BorderRadius.circular(3),
+                    for (final entry in discEntries)
+                      Positioned(
+                        left: entry.dx - (discSize * entry.scale) / 2,
+                        top: (platterDia + 20 - discSize * entry.scale) / 2,
+                        width: discSize * entry.scale,
+                        height: discSize * entry.scale,
+                        child: Opacity(
+                          opacity: entry.opacity,
+                          child: GestureDetector(
+                            onTap: () {
+                              ComicButton.playButtonSfx();
+                              if (entry.index != selectedIdx) {
+                                _animateTo(entry.index.toDouble());
+                              } else {
+                                widget.onTogglePreview(entry.track.type);
+                              }
+                            },
+                            child: _StandaloneVinylDisc(
+                              track: entry.track,
+                              size: discSize * entry.scale,
+                              isCentered: entry.index == selectedIdx,
+                              isPreviewing: widget.previewingType == entry.track.type && _isPlaying,
+                              angle: _scrollAngle +
+                                  (entry.index == selectedIdx && _isPlaying
+                                      ? _playbackAngle
+                                      : 0.0),
+                            ),
                           ),
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 7),
-                    // Action button
-                    SizedBox(
-                      width: math.min(W * 0.65, 230.0),
-                      child: SetAsBgmButton(
-                        isCurrentBgm: isSelectedBgm,
-                        onPressed: isSelectedBgm
-                            ? null
-                            : () {
-                                ComicButton.playButtonSfx();
-                                widget.onSetAsBgm();
-                              },
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+
+            // ── Center Spindle Hole Pin ───────────────────────────────────
+            Positioned(
+              left: platterCenter.dx - 4,
+              top: platterCenter.dy - 4,
+              child: IgnorePointer(
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFCCCCCC),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: Colors.black54, blurRadius: 2),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Top Stylus Rest Post (Parking Bracket) ────────────────────
+            Positioned(
+              left: pivotX + 16,
+              top: pivotY + 12,
+              child: IgnorePointer(
+                child: Container(
+                  width: 7,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF444444),
+                    borderRadius: BorderRadius.circular(3),
+                    border: Border.all(color: _kInk, width: 1.2),
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Player Stylus Tonearm (Mounted at the TOP of Vinyl Player) ─
+            Positioned(
+              left: pivotX - 11,
+              top: pivotY,
+              child: GestureDetector(
+                onTap: () {
+                  ComicButton.playButtonSfx();
+                  widget.onTogglePreview(selectedTrack.type);
+                },
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedBuilder(
+                  animation: _stylusCtrl,
+                  builder: (_, __) {
+                    return Transform.rotate(
+                      angle: stylusAngle,
+                      alignment: Alignment.topCenter,
+                      child: CustomPaint(
+                        size: Size(22.0, armLen + 20.0),
+                        painter: _TopStylusPainter(armLen: armLen),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // ── Track Title Banner & Equalizer ────────────────────────────
+            Positioned(
+              left: 20,
+              right: 20,
+              top: platterCenter.dy + platterR + 8,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      WaveformIndicator(
+                        color: activeColor,
+                        isPlaying: _isPlaying,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          selectedTrack.title.toUpperCase(),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Bangers',
+                            fontSize: 15,
+                            letterSpacing: 1.8,
+                            color: _kInk,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      WaveformIndicator(
+                        color: activeColor,
+                        isPlaying: _isPlaying,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${_fmt(_position)} / ${_fmt(effectiveDur)}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF777777),
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Scrubbable Progress Bar below Vinyl Player ────────────────
+            Positioned(
+              left: 36,
+              right: 36,
+              top: platterCenter.dy + platterR + 48,
+              child: GestureDetector(
+                onHorizontalDragStart: (_) => setState(() => _isScrubbing = true),
+                onHorizontalDragUpdate: (d) {
+                  final barWidth = W - 72;
+                  if (barWidth > 0) {
+                    final frac = (d.localPosition.dx / barWidth).clamp(0.0, 1.0);
+                    _seekTo(frac);
+                  }
+                },
+                onHorizontalDragEnd: (_) => setState(() => _isScrubbing = false),
+                onTapDown: (d) {
+                  final barWidth = W - 72;
+                  if (barWidth > 0) {
+                    final frac = (d.localPosition.dx / barWidth).clamp(0.0, 1.0);
+                    _seekTo(frac);
+                  }
+                },
+                child: Container(
+                  height: 14,
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  color: Colors.transparent,
+                  child: Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      // Progress track background
+                      Container(
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0E0E0),
+                          borderRadius: BorderRadius.circular(3),
+                          border: Border.all(color: _kInk.withValues(alpha: 0.4), width: 1.0),
+                        ),
+                      ),
+                      // Progress fill
+                      FractionallySizedBox(
+                        widthFactor: progress,
+                        child: Container(
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: activeColor,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ),
+                      // Scrubber knob
+                      Positioned(
+                        left: ((W - 72) * progress - 5).clamp(0.0, W - 72 - 10),
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: activeColor,
+                            border: Border.all(color: _kInk, width: 1.5),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black26, blurRadius: 2),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Bottom strip: Dots + Set as BGM Button ────────────────────
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 6,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Dot indicators
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(total, (i) {
+                      final isSel = i == selectedIdx;
+                      final color = _trackColor(tracks[i].type);
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: isSel ? 16 : 6,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: isSel ? color : _kInk.withValues(alpha: 0.20),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: math.min(W * 0.62, 220.0),
+                    child: SetAsBgmButton(
+                      isCurrentBgm: isSelectedBgm,
+                      onPressed: isSelectedBgm
+                          ? null
+                          : () {
+                              ComicButton.playButtonSfx();
+                              widget.onSetAsBgm();
+                            },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );
   }
 }
 
-class _CardEntry {
+class _StandaloneDiscEntry {
   final int index;
   final double dist;
   final double dx;
   final double scale;
   final double opacity;
-  final double yRotation;
   final MusicTrack track;
 
-  _CardEntry({
+  _StandaloneDiscEntry({
     required this.index,
     required this.dist,
     required this.dx,
     required this.scale,
     required this.opacity,
-    required this.yRotation,
     required this.track,
   });
 }
 
-// ─────────────────────────── _ComicVinylCard ─────────────────────────────────
+// ──────────────────────── _StandaloneVinylDisc ───────────────────────────────
 
-class _ComicVinylCard extends StatelessWidget {
-  const _ComicVinylCard({
+class _StandaloneVinylDisc extends StatelessWidget {
+  const _StandaloneVinylDisc({
     required this.track,
-    required this.cardWidth,
-    required this.cardHeight,
-    required this.isFocused,
-    required this.isCurrentBgm,
+    required this.size,
+    required this.isCentered,
     required this.isPreviewing,
-    required this.scrollAngle,
-    required this.playbackAngle,
-    required this.onTapCard,
+    required this.angle,
   });
 
   final MusicTrack track;
-  final double cardWidth;
-  final double cardHeight;
-  final bool isFocused;
-  final bool isCurrentBgm;
+  final double size;
+  final bool isCentered;
   final bool isPreviewing;
-  final double scrollAngle;
-  final double playbackAngle;
-  final VoidCallback onTapCard;
+  final double angle;
 
   @override
   Widget build(BuildContext context) {
     final color = _trackColor(track.type);
-    final discSize = math.min(cardWidth * 0.62, 104.0);
-    // Combine swipe scrub rotation with continuous playback rotation
-    final discAngle = scrollAngle + (isPreviewing ? playbackAngle : 0.0);
+    final labelSize = size * 0.32;
 
-    return GestureDetector(
-      onTap: onTapCard,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isFocused ? _kInk : _kInk.withValues(alpha: 0.60),
-            width: isFocused ? 2.2 : 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isFocused ? color.withValues(alpha: 0.45) : const Color(0x33000000),
-              offset: const Offset(3, 4),
-              blurRadius: isFocused ? 8 : 4,
+    return Center(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Rotating PNG Vinyl Record (clean standalone disc)
+            Transform.rotate(
+              angle: angle,
+              child: Image.asset(
+                'assets/images/vinyl_disc.png',
+                width: size,
+                height: size,
+                fit: BoxFit.contain,
+              ),
+            ),
+
+            // Center Track Label inside Disc Hole
+            Container(
+              width: labelSize,
+              height: labelSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color,
+                border: Border.all(color: _kInk, width: 1.4),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.40),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  isPreviewing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  size: labelSize * 0.65,
+                  color: _kInk,
+                ),
+              ),
             ),
           ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Comic sleeve header banner
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                color: color.withValues(alpha: 0.18),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: _kInk, width: 1),
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text(
-                        track.type.name.toUpperCase(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Bangers',
-                          fontSize: 10,
-                          letterSpacing: 1.2,
-                          color: _kInk.withValues(alpha: 0.85),
-                        ),
-                      ),
-                    ),
-                    if (isCurrentBgm)
-                      const Icon(
-                        Icons.check_circle_rounded,
-                        color: Color(0xFF00E676),
-                        size: 13,
-                      ),
-                  ],
-                ),
-              ),
-
-              // Vinyl disc container
-              Expanded(
-                child: Center(
-                  child: SizedBox(
-                    width: discSize,
-                    height: discSize,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Spinning PNG Vinyl Disc
-                        Transform.rotate(
-                          angle: discAngle,
-                          child: Image.asset(
-                            'assets/images/vinyl_disc.png',
-                            width: discSize,
-                            height: discSize,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-
-                        // Center track label inside vinyl disc hole
-                        Container(
-                          width: discSize * 0.31,
-                          height: discSize * 0.31,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: color,
-                            border: Border.all(color: _kInk, width: 1.2),
-                          ),
-                          child: Center(
-                            child: Icon(
-                              isPreviewing
-                                  ? Icons.pause_rounded
-                                  : Icons.play_arrow_rounded,
-                              size: discSize * 0.20,
-                              color: _kInk,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Sleeve footer with track title and duration
-              Container(
-                padding: const EdgeInsets.fromLTRB(6, 2, 6, 8),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      track.title.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'Bangers',
-                        fontSize: 13,
-                        letterSpacing: 1.2,
-                        color: _kInk,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        WaveformIndicator(
-                          color: color,
-                          isPlaying: isPreviewing,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          track.duration,
-                          style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF777777),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
   }
 }
 
+// ─────────────────────────── _TopStylusPainter ───────────────────────────────
+//
+// Mounted at the TOP of the vinyl player.
+// Needle points down onto the record grooves when playing, and lifts to the parking post when paused.
+//
+
+class _TopStylusPainter extends CustomPainter {
+  const _TopStylusPainter({required this.armLen});
+  final double armLen;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+
+    // Counterweight cylinder at top pivot
+    canvas.drawCircle(
+      Offset(cx, 6),
+      6.5,
+      Paint()..color = const Color(0xFF2B2B2E),
+    );
+    canvas.drawCircle(
+      Offset(cx, 6),
+      6.5,
+      Paint()
+        ..color = _kInk
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+
+    // Chrome tonearm stem pointing down
+    canvas.drawLine(
+      Offset(cx, 6),
+      Offset(cx, armLen),
+      Paint()
+        ..color = const Color(0xFF9E9E9E)
+        ..strokeWidth = 4.5
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // Headshell cartridge bend angled toward center spindle
+    canvas.drawLine(
+      Offset(cx, armLen),
+      Offset(cx - 9, armLen + 14),
+      Paint()
+        ..color = const Color(0xFFDDDDDD)
+        ..strokeWidth = 3.2
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // Needle stylus tip
+    canvas.drawCircle(
+      Offset(cx - 9, armLen + 14),
+      3.2,
+      Paint()..color = const Color(0xFFFF5252),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_TopStylusPainter old) => armLen != old.armLen;
+}
+
 // ──────────────────────────── _SlingshotVolumeGame ───────────────────────────
 //
-// Slingshot volume minigame:
-//   • Shifted UP by 80px and ENLARGED by 40%.
-//   • Arcade button placed directly beside the slingshot toggles target (BGM vs SFX).
-//   • Loaded bullet in slingshot reflects active target (Cyan vs Gold).
-//   • On hitting the volume bar: triggers comic snap/hit impact burst effect
-//     and recoil punch on the volume bar. Left is 0%, right is 100%, default 80%.
+// Optimized Slingshot Minigame:
+//   • True drag-and-release dynamic trajectory following gesture continuously (no snap).
+//   • Snappy bullet speed (~200ms flight duration).
+//   • Aim switcher button reliably receives taps.
+//   • Calibrated volume bar: Left edge is 0%, Right edge is 100%.
+//   • Shooting the mute button on the left toggles MUTE / UNMUTE with comic burst.
+//   • Black animated dotted trajectory arc with live target preview badge.
 //
 
 class _SlingshotVolumeGame extends StatefulWidget {
@@ -707,31 +1014,36 @@ class _SlingshotVolumeGameState extends State<_SlingshotVolumeGame>
   late AnimationController _flightCtrl;
   Offset _flightStart = Offset.zero;
   Offset _flightEnd = Offset.zero;
+  double _flightArcHeight = 65.0;
 
   // Impact burst state & animation controller
   late AnimationController _impactCtrl;
   Offset _impactPos = Offset.zero;
   bool _impactTargetIsBgm = true;
+  bool _impactIsMute = false;
 
-  // Cached bar rects and slingshot anchor
+  // Dotted trajectory animation ticker
+  late AnimationController _trajectoryCtrl;
+
+  // Cached layout coordinates
   Rect _bgmBarRect = Rect.zero;
   Rect _sfxBarRect = Rect.zero;
+  Rect _bgmMuteRect = Rect.zero;
+  Rect _sfxMuteRect = Rect.zero;
   Offset _slingshotAnchor = Offset.zero;
 
-  // Slingshot 40% enlarged parameters
-  static const double _maxPull = 100.0; // Scaled from 74.0
-  static const double _arcHeight = 65.0;
+  static const double _maxPull = 100.0;
 
   @override
   void initState() {
     super.initState();
-    // Default 80% volume positions
     _bgmBallFrac = widget.bgmVolume / 100.0;
     _sfxBallFrac = widget.sfxVolume / 100.0;
 
+    // Accelerated bullet flight speed (~200ms)
     _flightCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 460),
+      duration: const Duration(milliseconds: 200),
     )
       ..addListener(() => setState(() {}))
       ..addStatusListener((s) {
@@ -742,44 +1054,64 @@ class _SlingshotVolumeGameState extends State<_SlingshotVolumeGame>
       vsync: this,
       duration: const Duration(milliseconds: 360),
     )..addListener(() => setState(() {}));
+
+    _trajectoryCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat();
   }
 
   @override
   void dispose() {
     _flightCtrl.dispose();
     _impactCtrl.dispose();
+    _trajectoryCtrl.dispose();
     super.dispose();
   }
 
   void _onBallLanded() {
     final barRect = _targetIsBgm ? _bgmBarRect : _sfxBarRect;
+    final muteRect = _targetIsBgm ? _bgmMuteRect : _sfxMuteRect;
     if (barRect.isEmpty) return;
 
-    // Left is 0%, right is 100%
-    final frac =
-        ((_flightEnd.dx - barRect.left) / barRect.width).clamp(0.0, 1.0);
-    final vol = (frac * 100).round();
+    final isMuteHit = _flightEnd.dx <= (muteRect.right + 4);
 
     setState(() {
       _ballInFlight = false;
-      if (_targetIsBgm) {
-        _bgmBallFrac = frac;
-      } else {
-        _sfxBallFrac = frac;
-      }
-
-      // Trigger comic snap/hit burst effect
       _impactPos = _flightEnd;
       _impactTargetIsBgm = _targetIsBgm;
+      _impactIsMute = isMuteHit;
     });
 
     _impactCtrl.forward(from: 0.0);
     ComicButton.playButtonSfx();
 
-    if (_targetIsBgm) {
-      widget.notifier.setBgmVolume(vol);
+    if (isMuteHit) {
+      // Hit mute button -> toggle mute
+      if (_targetIsBgm) {
+        widget.notifier.setBgm(!widget.bgmEnabled);
+      } else {
+        widget.notifier.setSfx(!widget.sfxEnabled);
+      }
     } else {
-      widget.notifier.setSfxVolume(vol);
+      // Hit volume bar -> left is 0%, right is 100%
+      final frac =
+          ((_flightEnd.dx - barRect.left) / barRect.width).clamp(0.0, 1.0);
+      final vol = (frac * 100).round();
+
+      setState(() {
+        if (_targetIsBgm) {
+          _bgmBallFrac = frac;
+        } else {
+          _sfxBallFrac = frac;
+        }
+      });
+
+      if (_targetIsBgm) {
+        widget.notifier.setBgmVolume(vol);
+      } else {
+        widget.notifier.setSfxVolume(vol);
+      }
     }
   }
 
@@ -813,17 +1145,38 @@ class _SlingshotVolumeGameState extends State<_SlingshotVolumeGame>
     _launchBall();
   }
 
-  void _launchBall() {
+  // True dynamic drag vector calculation (no snapping to discrete points)
+  Offset _computeLandingPoint() {
     final barRect = _targetIsBgm ? _bgmBarRect : _sfxBarRect;
-    if (barRect.isEmpty || _slingshotAnchor == Offset.zero) return;
+    final muteRect = _targetIsBgm ? _bgmMuteRect : _sfxMuteRect;
+    if (barRect.isEmpty) return Offset.zero;
 
-    // Pull left -> launches right; pull right -> launches left.
-    final pullFrac = (-_dragOffset.dx / _maxPull).clamp(-1.0, 1.0);
-    final landingFrac = ((pullFrac + 1.0) / 2.0).clamp(0.0, 1.0);
-    final landingX = barRect.left + landingFrac * barRect.width;
+    final minX = muteRect.center.dx;
+    final maxX = barRect.right;
+    final centerTargetX = (minX + maxX) / 2;
+    final span = maxX - minX;
+
+    // Pull left -> shoots right; pull right -> shoots left
+    // Fluid continuous linear projection directly from dragOffset.dx (no snap)
+    final aimX = centerTargetX - (_dragOffset.dx / _maxPull) * (span * 0.65);
+    final landingX = aimX.clamp(minX, maxX);
+
+    return Offset(landingX, barRect.center.dy);
+  }
+
+  double _computeDynamicArcHeight() {
+    // Dynamic trajectory arc height organically scales with pull depth
+    return (35.0 + (_dragOffset.dy / _maxPull) * 55.0).clamp(35.0, 90.0);
+  }
+
+  void _launchBall() {
+    if (_slingshotAnchor == Offset.zero) return;
+    final landing = _computeLandingPoint();
+    if (landing == Offset.zero) return;
 
     _flightStart = _slingshotAnchor;
-    _flightEnd = Offset(landingX, barRect.center.dy);
+    _flightEnd = landing;
+    _flightArcHeight = _computeDynamicArcHeight();
 
     setState(() {
       _dragOffset = Offset.zero;
@@ -838,12 +1191,13 @@ class _SlingshotVolumeGameState extends State<_SlingshotVolumeGame>
     _flightCtrl.forward(from: 0);
   }
 
-  Offset _ballPos(double t) {
-    final p0 = _flightStart;
-    final p2 = _flightEnd;
+  Offset _ballPos(double t, [Offset? start, Offset? end, double? arcH]) {
+    final p0 = start ?? _flightStart;
+    final p2 = end ?? _flightEnd;
+    final arc = arcH ?? _flightArcHeight;
     final p1 = Offset(
       (p0.dx + p2.dx) / 2,
-      math.min(p0.dy, p2.dy) - _arcHeight,
+      math.min(p0.dy, p2.dy) - arc,
     );
     final u = 1 - t;
     return Offset(
@@ -859,21 +1213,22 @@ class _SlingshotVolumeGameState extends State<_SlingshotVolumeGame>
       final H = constraints.maxHeight;
 
       const double padH = 18.0;
-      const double labelW = 54.0;
+      const double muteBtnW = 30.0;
+      const double gapBeforeBar = 34.0; // 6 (gap) + 20 (label) + 8 (spacing)
       const double barH = 14.0;
       const double bar1RowTop = 18.0;
       const double bar2RowTop = 80.0;
       const double barTrackOffset = 16.0;
 
-      final barLeft = padH + labelW;
+      final barLeft = padH + muteBtnW + gapBeforeBar;
       final barWidth = W - barLeft - padH;
 
-      _bgmBarRect = Rect.fromLTWH(
-          barLeft, bar1RowTop + barTrackOffset, barWidth, barH);
-      _sfxBarRect = Rect.fromLTWH(
-          barLeft, bar2RowTop + barTrackOffset, barWidth, barH);
+      _bgmMuteRect = const Rect.fromLTWH(padH, bar1RowTop + barTrackOffset - 7, muteBtnW, muteBtnW);
+      _sfxMuteRect = const Rect.fromLTWH(padH, bar2RowTop + barTrackOffset - 7, muteBtnW, muteBtnW);
+      _bgmBarRect = Rect.fromLTWH(barLeft, bar1RowTop + barTrackOffset, barWidth, barH);
+      _sfxBarRect = Rect.fromLTWH(barLeft, bar2RowTop + barTrackOffset, barWidth, barH);
 
-      // Slingshot shifted UP by 80px (H - 96 instead of H - 16)
+      // Slingshot shifted UP by 80px
       _slingshotAnchor = Offset(W / 2, H - 96);
 
       final ballColor = _targetIsBgm
@@ -890,6 +1245,27 @@ class _SlingshotVolumeGameState extends State<_SlingshotVolumeGame>
       final sfxBounce = (_impactCtrl.isAnimating && !_impactTargetIsBgm)
           ? _impactCtrl.value
           : 0.0;
+
+      // Trajectory prediction calculation dynamically following gesture move
+      Offset? predictedLanding;
+      String? predictedBadgeText;
+      double dynamicArc = 60.0;
+
+      if (_isDragging && _dragOffset.dy >= 8.0) {
+        predictedLanding = _computeLandingPoint();
+        dynamicArc = _computeDynamicArcHeight();
+
+        if (predictedLanding != Offset.zero) {
+          final muteRect = _targetIsBgm ? _bgmMuteRect : _sfxMuteRect;
+          if (predictedLanding.dx <= muteRect.right + 4) {
+            final isCurrentlyMuted = _targetIsBgm ? !widget.bgmEnabled : !widget.sfxEnabled;
+            predictedBadgeText = isCurrentlyMuted ? 'UNMUTE' : 'MUTE';
+          } else {
+            final frac = ((predictedLanding.dx - barLeft) / barWidth).clamp(0.0, 1.0);
+            predictedBadgeText = '${(frac * 100).round()}%';
+          }
+        }
+      }
 
       return Stack(
         clipBehavior: Clip.hardEdge,
@@ -932,6 +1308,23 @@ class _SlingshotVolumeGameState extends State<_SlingshotVolumeGame>
             ),
           ),
 
+          // ── Black Animated Dotted Line Trajectory & Preview Badge ───────
+          if (_isDragging && predictedLanding != null)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _TrajectoryPainter(
+                    start: _slingshotAnchor + _dragOffset,
+                    end: predictedLanding,
+                    arcHeight: dynamicArc,
+                    badgeText: predictedBadgeText ?? '',
+                    targetColor: ballColor,
+                    phase: _trajectoryCtrl.value,
+                  ),
+                ),
+              ),
+            ),
+
           // ── Slingshot drawing (40% enlarged) + ball in flight ────────────
           Positioned.fill(
             child: CustomPaint(
@@ -956,12 +1349,28 @@ class _SlingshotVolumeGameState extends State<_SlingshotVolumeGame>
                     color: _impactTargetIsBgm
                         ? const Color(0xFF00E5FF)
                         : const Color(0xFFFFD600),
+                    isMute: _impactIsMute,
                   ),
                 ),
               ),
             ),
 
+          // ── Drag gesture zone around elevated slingshot ─────────────────
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: H * 0.52,
+            child: GestureDetector(
+              onPanStart: _onDragStart,
+              onPanUpdate: _onDragUpdate,
+              onPanEnd: _onDragEnd,
+              behavior: HitTestBehavior.translucent,
+            ),
+          ),
+
           // ── Aim switcher button placed BESIDE the slingshot ──────────────
+          // Placed AFTER the drag zone in the Stack so taps are reliably registered!
           Positioned(
             left: _slingshotAnchor.dx + 44,
             top: _slingshotAnchor.dy - 46,
@@ -970,6 +1379,7 @@ class _SlingshotVolumeGameState extends State<_SlingshotVolumeGame>
                 ComicButton.playButtonSfx();
                 setState(() => _targetIsBgm = !_targetIsBgm);
               },
+              behavior: HitTestBehavior.opaque,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -979,7 +1389,7 @@ class _SlingshotVolumeGameState extends State<_SlingshotVolumeGame>
                   border: Border.all(color: ballColor, width: 2.0),
                   boxShadow: [
                     BoxShadow(
-                      color: ballColor.withValues(alpha: 0.45),
+                      color: ballColor.withValues(alpha: 0.50),
                       blurRadius: 8,
                       offset: const Offset(1, 2),
                     ),
@@ -1027,20 +1437,6 @@ class _SlingshotVolumeGameState extends State<_SlingshotVolumeGame>
             ),
           ),
 
-          // ── Drag gesture zone around elevated slingshot ─────────────────
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: H * 0.52,
-            child: GestureDetector(
-              onPanStart: _onDragStart,
-              onPanUpdate: _onDragUpdate,
-              onPanEnd: _onDragEnd,
-              behavior: HitTestBehavior.opaque,
-            ),
-          ),
-
           // ── Hint label ──────────────────────────────────────────────────
           if (!_isDragging && !_ballInFlight)
             Positioned(
@@ -1063,6 +1459,116 @@ class _SlingshotVolumeGameState extends State<_SlingshotVolumeGame>
       );
     });
   }
+}
+
+// ─────────────────────────── _TrajectoryPainter ──────────────────────────────
+//
+// Black animating dotted trajectory curve with live prediction badge.
+// Follows gesture move fluidly in real-time without artificial snapping.
+//
+
+class _TrajectoryPainter extends CustomPainter {
+  const _TrajectoryPainter({
+    required this.start,
+    required this.end,
+    required this.arcHeight,
+    required this.badgeText,
+    required this.targetColor,
+    required this.phase,
+  });
+
+  final Offset start;
+  final Offset end;
+  final double arcHeight;
+  final String badgeText;
+  final Color targetColor;
+  final double phase; // 0.0 to 1.0
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p0 = start;
+    final p2 = end;
+    final p1 = Offset(
+      (p0.dx + p2.dx) / 2,
+      math.min(p0.dy, p2.dy) - arcHeight,
+    );
+
+    // Black comic dotted line along quadratic bezier
+    const dotCount = 18;
+    final dotPaint = Paint()
+      ..color = _kInk
+      ..style = PaintingStyle.fill;
+
+    for (int i = 0; i < dotCount; i++) {
+      // Marching ants animation flow towards target
+      final t = ((i + phase) / dotCount) % 1.0;
+      final u = 1 - t;
+      final pt = Offset(
+        u * u * p0.dx + 2 * u * t * p1.dx + t * t * p2.dx,
+        u * u * p0.dy + 2 * u * t * p1.dy + t * t * p2.dy,
+      );
+
+      final r = 1.8 + t * 1.6;
+      canvas.drawCircle(pt, r, dotPaint);
+    }
+
+    // Target crosshair at landing point
+    final crosshairPaint = Paint()
+      ..color = _kInk
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8;
+    canvas.drawCircle(p2, 6, crosshairPaint);
+    canvas.drawLine(p2 - const Offset(9, 0), p2 + const Offset(9, 0), crosshairPaint);
+    canvas.drawLine(p2 - const Offset(0, 9), p2 + const Offset(0, 9), crosshairPaint);
+
+    // Live comic prediction badge above landing point
+    if (badgeText.isNotEmpty) {
+      final badgeCenter = p2 - const Offset(0, 24);
+      final textSpan = TextSpan(
+        text: badgeText,
+        style: TextStyle(
+          fontFamily: 'Bangers',
+          fontSize: 12,
+          letterSpacing: 1.2,
+          color: targetColor,
+        ),
+      );
+      final tp = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final badgeRect = RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: badgeCenter,
+          width: tp.width + 12,
+          height: tp.height + 6,
+        ),
+        const Radius.circular(5),
+      );
+
+      // Badge background
+      canvas.drawRRect(badgeRect, Paint()..color = _kInk);
+      canvas.drawRRect(
+        badgeRect,
+        Paint()
+          ..color = targetColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2,
+      );
+
+      tp.paint(canvas, badgeCenter - Offset(tp.width / 2, tp.height / 2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_TrajectoryPainter old) =>
+      start != old.start ||
+      end != old.end ||
+      arcHeight != old.arcHeight ||
+      badgeText != old.badgeText ||
+      phase != old.phase ||
+      targetColor != old.targetColor;
 }
 
 // ─────────────────────────── _HorizontalVolumeBar ────────────────────────────
@@ -1094,7 +1600,6 @@ class _HorizontalVolumeBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Dynamic punch bounce when ball hits this volume bar
     final bounceScale = bounceProgress > 0.0
         ? (1.0 + 0.08 * math.sin(bounceProgress * math.pi))
         : 1.0;
@@ -1105,7 +1610,7 @@ class _HorizontalVolumeBar extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Toggle icon button
+          // Toggle icon button (30x30)
           GestureDetector(
             onTap: () => onToggle(!enabled),
             child: AnimatedContainer(
@@ -1125,7 +1630,7 @@ class _HorizontalVolumeBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          // Label
+          // Label (20px)
           SizedBox(
             width: 20,
             child: Text(
@@ -1138,7 +1643,8 @@ class _HorizontalVolumeBar extends StatelessWidget {
               ),
             ),
           ),
-          // Bar + value
+          const SizedBox(width: 8),
+          // Bar + value (Expanded)
           Expanded(
             child: IgnorePointer(
               ignoring: !enabled,
@@ -1242,9 +1748,6 @@ class _HorizontalVolumeBar extends StatelessWidget {
 }
 
 // ──────────────────────────── _SlingshotPainter ──────────────────────────────
-//
-// Enlarged by 40% (1.4x scale factor) and rendered at the elevated anchor.
-//
 
 class _SlingshotPainter extends CustomPainter {
   const _SlingshotPainter({
@@ -1263,7 +1766,7 @@ class _SlingshotPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 40% enlarged fork geometry
+    // 40% enlarged geometry
     final leftFork = anchor + const Offset(-34, -76);
     final rightFork = anchor + const Offset(34, -76);
     final stem = anchor + const Offset(0, -50);
@@ -1299,7 +1802,7 @@ class _SlingshotPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
-    const ballRadius = 15.5; // 40% enlarged ball (up from 11)
+    const ballRadius = 15.5;
 
     if (dragOffset != null && dragOffset != Offset.zero) {
       final dragPt = anchor + dragOffset!;
@@ -1356,20 +1859,19 @@ class _SlingshotPainter extends CustomPainter {
 }
 
 // ─────────────────────────── _ImpactBurstPainter ─────────────────────────────
-//
-// Comic starburst rays + expanding shockwave ring + pop particles on hit.
-//
 
 class _ImpactBurstPainter extends CustomPainter {
   const _ImpactBurstPainter({
     required this.position,
     required this.progress,
     required this.color,
+    this.isMute = false,
   });
 
   final Offset position;
   final double progress;
   final Color color;
+  final bool isMute;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1413,13 +1915,29 @@ class _ImpactBurstPainter extends CustomPainter {
               math.sin(sparkAngle) * sparkDist);
       canvas.drawCircle(sparkPos, (3.0 * (1.0 - progress)).clamp(0.5, 3.0), sparkPaint);
     }
+
+    // Comic text indicator on mute
+    if (isMute) {
+      final textSpan = TextSpan(
+        text: 'MUTE',
+        style: TextStyle(
+          fontFamily: 'Bangers',
+          fontSize: 16,
+          letterSpacing: 1.5,
+          color: Colors.redAccent.withAlpha(alpha),
+        ),
+      );
+      final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)..layout();
+      tp.paint(canvas, position - Offset(tp.width / 2, burstRadius + 14));
+    }
   }
 
   @override
   bool shouldRepaint(_ImpactBurstPainter old) =>
       progress != old.progress ||
       position != old.position ||
-      color != old.color;
+      color != old.color ||
+      isMute != old.isMute;
 }
 
 // ─────────────────────────── WaveformIndicator ──────────────────────────────
