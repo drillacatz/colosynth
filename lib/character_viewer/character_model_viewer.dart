@@ -42,16 +42,10 @@ class _CharacterModelViewerState extends ConsumerState<CharacterModelViewer> {
   String _resolveUriScheme(String path) {
     if (path.startsWith('http://') ||
         path.startsWith('https://') ||
-        path.startsWith('file://')) {
+        path.startsWith('data:')) {
       return path;
     }
-    if (kIsWeb) {
-      return path;
-    }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'file:///android_asset/flutter_assets/$path';
-    }
-    return 'file:///$path';
+    return path;
   }
 
   @override
@@ -85,12 +79,10 @@ class _CharacterModelViewerState extends ConsumerState<CharacterModelViewer> {
     }
 
     final resolvedSrc = _resolveUriScheme(asset.glbPath);
-    final resolvedPoster = asset.posterPath != null ? _resolveUriScheme(asset.posterPath!) : null;
 
     Widget viewerWidget = ModelViewer(
       backgroundColor: Colors.transparent,
       src: resolvedSrc,
-      poster: resolvedPoster,
       alt: 'ColoSynth 3D Character ${widget.characterId}',
       autoRotate: false,
       cameraControls: widget.allowUserControl,

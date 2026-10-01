@@ -24,37 +24,37 @@ class CharacterModelRegistry {
     'arthur': CharacterModelAsset(
       characterId: 'arthur',
       glbPath: 'assets/models/arthur.glb',
-      posterPath: 'assets/images/characters/arthur.png',
+      posterPath: 'assets/images/arthur.png',
       availableAnimations: ['idle', 'reaction'],
     ),
     'centrium': CharacterModelAsset(
       characterId: 'centrium',
       glbPath: 'assets/models/centrium.glb',
-      posterPath: 'assets/images/characters/centrium.png',
+      posterPath: 'assets/images/centrium.png',
       availableAnimations: ['idle', 'reaction'],
     ),
     'lilith': CharacterModelAsset(
       characterId: 'lilith',
       glbPath: 'assets/models/lilith.glb',
-      posterPath: 'assets/images/characters/lilith.png',
+      posterPath: 'assets/images/lilith.png',
       availableAnimations: ['idle', 'reaction'],
     ),
     'valkyrie': CharacterModelAsset(
       characterId: 'valkyrie',
       glbPath: 'assets/models/valkyrie.glb',
-      posterPath: 'assets/images/characters/valkyrie.png',
+      posterPath: 'assets/images/valkyrie.png',
       availableAnimations: ['idle', 'reaction'],
     ),
     'kronos': CharacterModelAsset(
       characterId: 'kronos',
       glbPath: 'assets/models/kronos.glb',
-      posterPath: 'assets/images/characters/kronos.png',
+      posterPath: 'assets/images/kronos.png',
       availableAnimations: ['idle', 'reaction'],
     ),
     'nyx': CharacterModelAsset(
       characterId: 'nyx',
       glbPath: 'assets/models/nyx.glb',
-      posterPath: 'assets/images/characters/nyx.png',
+      posterPath: 'assets/images/nyx.png',
       availableAnimations: ['idle', 'reaction'],
     ),
   };

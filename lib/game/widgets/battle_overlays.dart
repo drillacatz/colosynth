@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:colosynth/game/app_shell/battle_screen.dart' show BattleResult;
 import 'package:colosynth/screens/theme/tokens.dart';
+import 'package:colosynth/widgets/common/app_comic_button.dart';
 
 
 class VictoryOverlay extends StatefulWidget {
@@ -68,11 +69,12 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
                 
                 const SizedBox(height: 48),
                 
-                ComicButton(
+                AppComicButton(
                   label: 'CONTINUE',
-                  style: PBStyle.white,
+                  style: AppButtonStyle.accent,
                   fontSize: 20,
-                  padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 16),
+                  width: 240,
+                  height: 54,
                   onTap: widget.onContinue,
                 ).animate().fadeIn(delay: 1200.ms).scale(begin: const Offset(0.8, 0.8)),
               ],
@@ -182,31 +184,34 @@ class _DefeatOverlayState extends State<DefeatOverlay> {
                 const SizedBox(height: 60),
                 
                 if (widget.reviveAvailable) ...[
-                  ComicButton(
+                  AppComicButton(
                     label: 'REVIVE (AD)',
-                    style: PBStyle.white,
+                    style: AppButtonStyle.accent,
                     fontSize: 18,
-                    padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 14),
+                    width: 230,
+                    height: 52,
                     onTap: widget.onRevive,
                   ).animate().fadeIn(delay: 800.ms).slideY(begin: 0.2),
                   const SizedBox(height: 20),
                 ],
                 
-                ComicButton(
+                AppComicButton(
                   label: 'RESTART',
-                  style: PBStyle.white,
+                  style: AppButtonStyle.white,
                   fontSize: 18,
-                  padding: const EdgeInsets.symmetric(horizontal: 56, vertical: 14),
+                  width: 230,
+                  height: 50,
                   onTap: widget.onRestart,
                 ).animate().fadeIn(delay: 900.ms).slideY(begin: 0.2),
                 
                 const SizedBox(height: 16),
                 
-                ComicButton(
+                AppComicButton(
                   label: 'QUIT',
-                  style: PBStyle.dark,
+                  style: AppButtonStyle.dark,
                   fontSize: 18,
-                  padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 14),
+                  width: 230,
+                  height: 50,
                   onTap: widget.onQuit,
                 ).animate().fadeIn(delay: 1100.ms).slideY(begin: 0.2),
               ],

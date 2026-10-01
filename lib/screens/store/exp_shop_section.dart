@@ -48,8 +48,17 @@ class ExpBundleGridCard extends ConsumerWidget {
         ? ref.watch(paintProvider) >= bundle.cost
         : ref.watch(inkProvider) >= bundle.cost;
 
+    final IconData icon;
+    if (bundle.id.startsWith('exp_hammer')) {
+      icon = Icons.gavel;
+    } else if (bundle.id.startsWith('exp_note')) {
+      icon = Icons.note;
+    } else {
+      icon = Icons.menu_book;
+    }
+
     return ShopCard(
-      imagePath: bundle.assetPath,
+      icon: icon,
       mainLabel: bundle.name,
       subLabel: '${bundle.cost} ${bundle.usePaint ? 'PAINT' : 'INK'}',
       highlighted: false,

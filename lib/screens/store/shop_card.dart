@@ -154,6 +154,11 @@ class _ShopCardState extends State<ShopCard>
                                   child: Image.asset(
                                     '${widget.imagePath}.png',
                                     fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => Icon(
+                                      widget.icon ?? Icons.inventory_2,
+                                      color: iconColor,
+                                      size: iconSize,
+                                    ),
                                   ),
                                 )
                               : Icon(widget.icon, color: iconColor, size: iconSize),

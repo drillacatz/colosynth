@@ -52,11 +52,14 @@ abstract final class SpriteRepository {
   static const String battleBackgroundNotebook = 'assets/images/bg_notebook.png';
   static const String battleBackgroundComicBurst = 'assets/images/bg_comic_burst.png';
   static const String battleBackgroundDarkComic = 'assets/images/bg_dark_comic.png';
+  static const String battleBackgroundSynthwaveArena = 'assets/images/bg_battle_arena.png';
+  static const String readyScreenBackground = 'assets/images/bg_ready_screen.png';
 
   /// Resolves the appropriate battle background PNG asset path based on tournament tier.
   static String battleBackgroundForTier(int tier) {
-    if (tier >= 7) return battleBackgroundDarkComic;
-    if (tier >= 4) return battleBackgroundComicBurst;
+    if (tier >= 5) return battleBackgroundSynthwaveArena;
+    if (tier >= 3) return battleBackgroundDarkComic;
+    if (tier >= 2) return battleBackgroundComicBurst;
     return battleBackgroundNotebook;
   }
 

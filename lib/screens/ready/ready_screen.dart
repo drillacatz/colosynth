@@ -16,6 +16,7 @@ import 'package:colosynth/screens/ready/character_selection_overlay.dart';
 import 'package:colosynth/screens/ready/battle_alert_overlay.dart';
 import 'package:colosynth/game_settings.dart';
 import 'package:colosynth/services/audio_service.dart';
+import 'package:colosynth/services/sprite_repository.dart';
 
 class ReadyResult {
   final bool confirmed;
@@ -127,6 +128,13 @@ class _ReadyScreenState extends ConsumerState<ReadyScreen> {
             backgroundColor: Colors.transparent,
             body: Stack(
               children: [
+                Positioned.fill(
+                  child: Image.asset(
+                    SpriteRepository.readyScreenBackground,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF0A0512)),
+                  ),
+                ),
                 if (_lightningFinished)
                   ClipPath(
                     clipper: ReadyQuadrantClipper(
@@ -139,7 +147,7 @@ class _ReadyScreenState extends ConsumerState<ReadyScreen> {
                     child: Container(
                       width: double.infinity,
                       height: double.infinity,
-                      color: const Color(0xFF0D0600),
+                      color: const Color(0xEA0D0600),
                       child: Stack(
                         children: [
                           Positioned(
@@ -178,7 +186,7 @@ class _ReadyScreenState extends ConsumerState<ReadyScreen> {
                     child: Container(
                       width: double.infinity,
                       height: double.infinity,
-                      color: const Color(0xFF121212),
+                      color: const Color(0xEA121212),
                       child: Stack(
                         children: [
                           Positioned(

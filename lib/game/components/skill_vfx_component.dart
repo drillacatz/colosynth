@@ -30,17 +30,25 @@ class SkillVfxComponent extends SpriteAnimationComponent {
   Future<void> onLoad() async {
     super.onLoad();
 
-    // 1. Load the 4x4 16-frame sprite sheet
-    final image = await Flame.images.load(SpriteRepository.skillVfx(archetype));
-    animation = SpriteAnimation.fromFrameData(
-      image,
-      SpriteAnimationData.sequenced(
-        amount: 16,
-        stepTime: 0.025, // 16 * 25ms = 400ms total duration
-        textureSize: Vector2(128, 128),
-        loop: false,
-      ),
-    );
+    // 1. Load the 4x4 16-frame sprite sheet with correct 4-column layout
+    try {
+      final image = await Flame.images.load(SpriteRepository.skillVfx(archetype));
+      animation = SpriteAnimation.fromFrameData(
+        image,
+        SpriteAnimationData.sequenced(
+          amount: 16,
+          amountPerRow: 4,
+          stepTime: 0.025, // 16 * 25ms = 400ms total duration
+          textureSize: Vector2(128, 128),
+          loop: false,
+        ),
+      );
+    } catch (_) {
+      // Graceful fallback if asset cannot be loaded
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (isMounted) removeFromParent();
+      });
+    }
 
     // 2. Play impact audio
     if (archetype == 'slash') {

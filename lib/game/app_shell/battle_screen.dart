@@ -162,6 +162,7 @@ class _BattleScreenState extends ConsumerState<BattleScreen> {
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         if (_finalResult != null) return;
+        if (_paused) return;
         _setPaused(true);
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -211,6 +212,11 @@ class _BattleScreenState extends ConsumerState<BattleScreen> {
                     onRestart: () {
                       _setPaused(false);
                       _api!.resetBattle();
+                    },
+                    onQuit: () {
+                      _exiting = true;
+                      Navigator.of(context, rootNavigator: true)
+                          .pop(BattleResult.empty(BattleOutcome.quit));
                     },
                   ),
                 ),
