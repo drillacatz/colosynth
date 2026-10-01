@@ -90,7 +90,7 @@ class _CharacterModelViewerState extends ConsumerState<CharacterModelViewer> {
       cameraOrbit: asset.cameraOrbit,
       fieldOfView: asset.fieldOfView,
       exposure: 1.05,
-      shadowIntensity: 1.2,
+      shadowIntensity: 0.85,
       shadowSoftness: 0.1,
       animationName: currentAnim,
       autoPlay: true,

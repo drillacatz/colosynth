@@ -219,8 +219,6 @@ PageRoute<T> _instantRoute<T>(Widget page) => PageRouteBuilder<T>(
     );
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
     AppLogger.e('FlutterError', details.exceptionAsString(), details.stack);
@@ -238,6 +236,7 @@ void main() async {
   };
 
   unawaited(runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
     try {
       final prefs = await SharedPreferences.getInstance();
       runApp(
