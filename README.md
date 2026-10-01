@@ -1,6 +1,6 @@
 # ColoSynth
 
-ColoSynth is a 2D mobile action combat game developed with Flutter and Flame. The game features timing-based combat mechanics, stylized comic-inspired visual presentation, interactive story sequences, a 3D character inspector, and monetization integrated via RevenueCat.
+ColoSynth is a 2D mobile action combat game developed with Flutter and Flame. Inspired by the discontinued childhood mobile classic *Blood & Glory* (Glu Mobile), ColoSynth resurrects that beloved directional swipe, parry, dodge, and counter-attack combat loop inside an electrifying retro-synthwave comic universe. The game features timing-based combat mechanics, stylized comic-inspired visual presentation, interactive story sequences, a 3D character inspector, and monetization integrated via RevenueCat.
 
 This project was built for the RevenueCat Shipaton 2026 hackathon (Next Gen Award track).
 
