@@ -38,7 +38,6 @@ class EnemyComponent extends PositionComponent
   double _telegraphPulse = 0.0;
   bool _telegraphActive = false;
 
-  final _labelPaints = <BattleState, TextPaint>{};
   final _telegraphPaint = TextPaint(
     style: const TextStyle(
       color: Color(0xFFFF4400),
@@ -73,14 +72,37 @@ class EnemyComponent extends PositionComponent
   double get hpRatio => _maxHp > 0 ? _currentHp / _maxHp : 0.0;
 
   bool get isBlocking => _isBlocking;
+  final int tournamentTier;
+  final bool isBoss;
 
-  EnemyComponent({required this.profile, required int tournamentTier})
-      : tierStats = TierEnemyStats.forTier(tournamentTier),
-        _maxHp = TierEnemyStats.forTier(tournamentTier).hp,
-        _currentHp = TierEnemyStats.forTier(tournamentTier).hp,
-        stamina = StaminaSystem(maxStamina: profile.staminaMax),
+  EnemyComponent({
+    required AiProfile profile,
+    required int tournamentTier,
+    bool isBoss = false,
+    TierEnemyStats? stats,
+  }) : this._internal(
+          profile: profile,
+          tournamentTier: tournamentTier,
+          isBoss: isBoss,
+          stats: stats ??
+              TierEnemyStats.forStage(
+                tier: tournamentTier,
+                stageWithinTier: isBoss ? 12 : 1,
+                isBoss: isBoss,
+              ),
+        );
+
+  EnemyComponent._internal({
+    required this.profile,
+    required this.tournamentTier,
+    required this.isBoss,
+    required TierEnemyStats stats,
+  })  : tierStats = stats,
+        _maxHp = stats.hp,
+        _currentHp = stats.hp,
+        stamina = StaminaSystem(maxStamina: stats.stamina > 0 ? stats.stamina : profile.staminaMax),
         activeSkill = profile.activeSkillEnabled ? ActiveSkillMeter() : null,
-        hpNotifier = ValueNotifier(TierEnemyStats.forTier(tournamentTier).hp),
+        hpNotifier = ValueNotifier(stats.hp),
         super(
           size: Vector2(EnemyConstants.spriteW, EnemyConstants.spriteH),
           position: Vector2(EnemyConstants.startX, EnemyConstants.startY),
@@ -93,7 +115,10 @@ class EnemyComponent extends PositionComponent
     stamina.onExhausted = _onStaminaExhausted;
 
     try {
-      final sprite = await Sprite.load(SpriteRepository.enemy);
+      final spritePath = isBoss
+          ? SpriteRepository.bossSpriteForTier(tournamentTier)
+          : SpriteRepository.enemy;
+      final sprite = await Sprite.load(spritePath);
       add(SpriteComponent(sprite: sprite, size: size, priority: 1)
         ..flipHorizontally());
     } catch (_) {
@@ -105,10 +130,11 @@ class EnemyComponent extends PositionComponent
     }
 
     add(_EnemyGroundShadow(parentWidth: size.x));
+    add(_GuardShieldAura(enemy: this, parentSize: size));
 
     _stateText = TextComponent(
       text: 'IDLE',
-      textRenderer: _getLabelPaint(BattleState.idle),
+      textRenderer: _getLabelPaintForColor(_currentLabelColor(BattleState.idle)),
       position: Vector2(size.x / 2, -6),
       anchor: Anchor.bottomCenter,
     );
@@ -125,14 +151,16 @@ class EnemyComponent extends PositionComponent
 
     world.fsm.addListener(_onFsmChanged);
     _fsmListenerAdded = true;
-    _stateText.text = _enemyLabel(world.fsm.current);
+    _refreshStateLabel();
   }
 
-  TextPaint _getLabelPaint(BattleState s) {
-    return _labelPaints.putIfAbsent(s, () {
+  final _colorPaints = <Color, TextPaint>{};
+
+  TextPaint _getLabelPaintForColor(Color c) {
+    return _colorPaints.putIfAbsent(c, () {
       return TextPaint(
         style: TextStyle(
-          color: _enemyLabelColor(s),
+          color: c,
           fontSize: 11,
           fontWeight: FontWeight.bold,
           shadows: const [
@@ -142,6 +170,27 @@ class EnemyComponent extends PositionComponent
         ),
       );
     });
+  }
+
+  String _currentLabel(BattleState s) {
+    if (_isBlocking && s != BattleState.counterWindow && s != BattleState.defeat) {
+      return 'GUARD';
+    }
+    return _enemyLabel(s);
+  }
+
+  Color _currentLabelColor(BattleState s) {
+    if (_isBlocking && s != BattleState.counterWindow && s != BattleState.defeat) {
+      return const Color(0xFF00E5FF);
+    }
+    return _enemyLabelColor(s);
+  }
+
+  void _refreshStateLabel() {
+    if (!isMounted || !_fsmListenerAdded) return;
+    final state = world.fsm.current;
+    _stateText.text = _currentLabel(state);
+    _stateText.textRenderer = _getLabelPaintForColor(_currentLabelColor(state));
   }
 
   @override
@@ -193,8 +242,7 @@ class EnemyComponent extends PositionComponent
       };
 
   void _onFsmChanged(BattleState prev, BattleState next) {
-    _stateText.text = _enemyLabel(next);
-    _stateText.textRenderer = _getLabelPaint(next);
+    _refreshStateLabel();
 
     if (next == BattleState.enemyTelegraph) {
       final arrow = world.currentEnemyDirection.arrow;
@@ -248,11 +296,13 @@ class EnemyComponent extends PositionComponent
   void startBlock() {
     _isBlocking = true;
     stamina.setBlocking(true);
+    _refreshStateLabel();
   }
 
   void endBlock() {
     _isBlocking = false;
     stamina.setBlocking(false);
+    _refreshStateLabel();
   }
 
   bool tryActivateSkill() {
@@ -266,10 +316,9 @@ class EnemyComponent extends PositionComponent
     stamina.reset();
     activeSkill?.reset();
     _telegraphActive = false;
-    _telegraphArrow.text = '';
     if (_fsmListenerAdded) {
-      _stateText.text = _enemyLabel(BattleState.idle);
-      _stateText.textRenderer = _getLabelPaint(BattleState.idle);
+      _telegraphArrow.text = '';
+      _refreshStateLabel();
     }
   }
 
@@ -279,8 +328,89 @@ class EnemyComponent extends PositionComponent
     stamina.dispose();
     activeSkill?.dispose();
     hpNotifier.dispose();
-    _labelPaints.clear();
+    _colorPaints.clear();
     super.onRemove();
+  }
+}
+
+class _GuardShieldAura extends PositionComponent {
+  final EnemyComponent enemy;
+  double _auraTimer = 0.0;
+
+  _GuardShieldAura({required this.enemy, required Vector2 parentSize})
+      : super(
+          size: Vector2(parentSize.x * 1.15, parentSize.y * 1.05),
+          position: Vector2(-parentSize.x * 0.075, -parentSize.y * 0.025),
+          priority: 5,
+        );
+
+  final Paint _fillPaint = Paint()
+    ..color = const Color(0x3300E5FF)
+    ..style = PaintingStyle.fill;
+
+  final Paint _strokePaint = Paint()
+    ..color = const Color(0xFF00E5FF)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3.0;
+
+  final Paint _glowPaint = Paint()
+    ..color = const Color(0x8800E5FF)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 6.0
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+
+  final Paint _linePaint = Paint()
+    ..color = const Color(0x6600E5FF)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (enemy.isBlocking) {
+      _auraTimer += dt * 4.0;
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    if (!enemy.isBlocking) return;
+
+    final pulse = 0.96 + 0.04 * math.sin(_auraTimer);
+    final w = size.x;
+    final h = size.y;
+    final cx = w / 2;
+    final cy = h / 2;
+
+    canvas.save();
+    canvas.translate(cx, cy);
+    canvas.scale(pulse, pulse);
+    canvas.translate(-cx, -cy);
+
+    final path = Path();
+    path.moveTo(w * 0.15, 0);
+    path.lineTo(w * 0.85, 0);
+    path.lineTo(w, h * 0.35);
+    path.lineTo(w * 0.85, h * 0.85);
+    path.lineTo(cx, h);
+    path.lineTo(w * 0.15, h * 0.85);
+    path.lineTo(0, h * 0.35);
+    path.close();
+
+    canvas.drawPath(path, _glowPaint);
+    canvas.drawPath(path, _fillPaint);
+    canvas.drawPath(path, _strokePaint);
+
+    for (double y = h * 0.2; y <= h * 0.8; y += 18.0) {
+      final lineW = (1.0 - ((y - cy).abs() / cy)) * (w * 0.7);
+      canvas.drawLine(
+        Offset(cx - lineW / 2, y),
+        Offset(cx + lineW / 2, y),
+        _linePaint,
+      );
+    }
+
+    canvas.restore();
   }
 }
 

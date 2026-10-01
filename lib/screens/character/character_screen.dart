@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:colosynth/game_data/character_database.dart';
 import 'package:colosynth/game_data/character_type.dart';
 import 'package:colosynth/providers/save_provider.dart';
-import 'package:colosynth/providers/service_providers.dart';
 import 'package:colosynth/guide/guide_anchor.dart';
 import 'package:colosynth/screens/theme/tokens.dart';
 import 'package:colosynth/screens/character/character_wheel.dart';
@@ -31,8 +30,7 @@ class _CharacterScreenState extends ConsumerState<CharacterScreen> {
   @override
   void initState() {
     super.initState();
-    final sm = ref.read(saveManagerProvider);
-    final equippedId = sm.loadEquippedCharacter() ?? 'arthur';
+    final equippedId = ref.read(equippedCharacterIdProvider);
     final chars = CharacterDatabase.all;
 
     final idx = chars.indexWhere((c) => c.id == equippedId);
@@ -41,7 +39,9 @@ class _CharacterScreenState extends ConsumerState<CharacterScreen> {
 
   @override
   void dispose() {
-    AccountSyncService.instance.flushMilestone();
+    try {
+      AccountSyncService.instance.flushMilestone();
+    } catch (_) {}
     super.dispose();
   }
 
@@ -81,10 +81,18 @@ class _CharacterScreenState extends ConsumerState<CharacterScreen> {
     final selected = allChars[safeIndex];
     final levelData = ref.watch(characterLevelFamily(selected.id));
 
+    final size = MediaQuery.sizeOf(context);
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        RepaintBoundary(child: CharacterArtBackdrop(character: selected)),
+        Positioned(
+          left: 0,
+          top: 156,
+          width: size.width * 0.66,
+          bottom: 0,
+          child: RepaintBoundary(child: CharacterArtBackdrop(character: selected)),
+        ),
         Positioned(
           left: 10,
           right: 10,

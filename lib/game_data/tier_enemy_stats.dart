@@ -18,47 +18,52 @@ class TierEnemyStats {
   static TierEnemyStats forTier(int tier) {
     switch (tier) {
       case 1:
-        return const TierEnemyStats(hp: 60, atk: 10, def: 0, damageReduction: 0.0, shield: 0, stamina: 60);
+        return const TierEnemyStats(hp: 650, atk: 55, def: 10, damageReduction: 0.20, shield: 10, stamina: 60);
       case 2:
-        return const TierEnemyStats(hp: 300, atk: 40, def: 10, damageReduction: 0.02, shield: 10, stamina: 80);
+        return const TierEnemyStats(hp: 1500, atk: 180, def: 25, damageReduction: 0.25, shield: 25, stamina: 80);
       case 3:
-        return const TierEnemyStats(hp: 800, atk: 80, def: 20, damageReduction: 0.04, shield: 20, stamina: 100);
+        return const TierEnemyStats(hp: 3000, atk: 380, def: 50, damageReduction: 0.30, shield: 50, stamina: 100);
       case 4:
-        return const TierEnemyStats(hp: 2000, atk: 200, def: 50, damageReduction: 0.07, shield: 50, stamina: 120);
+        return const TierEnemyStats(hp: 5200, atk: 700, def: 90, damageReduction: 0.35, shield: 90, stamina: 120);
       case 5:
-        return const TierEnemyStats(hp: 5000, atk: 450, def: 100, damageReduction: 0.10, shield: 100, stamina: 140);
+        return const TierEnemyStats(hp: 8200, atk: 1150, def: 150, damageReduction: 0.40, shield: 150, stamina: 140);
       case 6:
-        return const TierEnemyStats(hp: 10000, atk: 900, def: 200, damageReduction: 0.13, shield: 200, stamina: 160);
+        return const TierEnemyStats(hp: 12500, atk: 1800, def: 240, damageReduction: 0.42, shield: 240, stamina: 160);
       case 7:
-        return const TierEnemyStats(hp: 18000, atk: 1600, def: 350, damageReduction: 0.16, shield: 350, stamina: 180);
+        return const TierEnemyStats(hp: 18500, atk: 2800, def: 360, damageReduction: 0.45, shield: 360, stamina: 180);
       case 8:
-        return const TierEnemyStats(hp: 30000, atk: 2800, def: 500, damageReduction: 0.19, shield: 500, stamina: 200);
+        return const TierEnemyStats(hp: 27000, atk: 4200, def: 520, damageReduction: 0.48, shield: 520, stamina: 200);
       case 9:
-        return const TierEnemyStats(hp: 45000, atk: 4200, def: 700, damageReduction: 0.22, shield: 700, stamina: 220);
+        return const TierEnemyStats(hp: 39000, atk: 6000, def: 720, damageReduction: 0.50, shield: 720, stamina: 220);
       case 10:
-        return const TierEnemyStats(hp: 60000, atk: 6000, def: 900, damageReduction: 0.25, shield: 900, stamina: 250);
+        return const TierEnemyStats(hp: 54000, atk: 8200, def: 980, damageReduction: 0.52, shield: 980, stamina: 250);
       case 11:
-        return const TierEnemyStats(hp: 90000, atk: 9000, def: 1500, damageReduction: 0.30, shield: 1500, stamina: 300);
+        return const TierEnemyStats(hp: 75000, atk: 11000, def: 1400, damageReduction: 0.55, shield: 1400, stamina: 300);
       default:
-        return const TierEnemyStats(hp: 60, atk: 10, def: 0, damageReduction: 0.0, shield: 0, stamina: 60);
+        return const TierEnemyStats(hp: 650, atk: 55, def: 10, damageReduction: 0.20, shield: 10, stamina: 60);
     }
   }
 
-  /// Returns scaled stats based on the exact stage position within a tier.
-  /// [stageWithinTier] is 1–12; boss (12) gets a 20% HP/ATK bonus.
-  static TierEnemyStats forStage({required int tier, required int stageWithinTier}) {
+  /// Returns scaled stats based on the exact stage position within a tier or boss flag.
+  /// [stageWithinTier] is 1–12; boss (12 or isBoss) gets 50% HP bonus (requiring ~5 staggers),
+  /// +15% ATK, and +30% stamina.
+  static TierEnemyStats forStage({
+    required int tier,
+    required int stageWithinTier,
+    bool isBoss = false,
+  }) {
     final base = forTier(tier);
-    final isBoss = stageWithinTier == 12;
-    final isElite = stageWithinTier >= 10;
-    final hpMult = isBoss ? 1.2 : isElite ? 1.1 : 1.0;
-    final atkMult = isBoss ? 1.15 : isElite ? 1.08 : 1.0;
+    final bossEncounter = isBoss || stageWithinTier == 12;
+    final isElite = stageWithinTier >= 10 && !bossEncounter;
+    final hpMult = bossEncounter ? 1.50 : isElite ? 1.15 : 1.0;
+    final atkMult = bossEncounter ? 1.15 : isElite ? 1.08 : 1.0;
     return TierEnemyStats(
       hp: (base.hp * hpMult).round(),
       atk: (base.atk * atkMult).round(),
       def: base.def,
       damageReduction: base.damageReduction,
       shield: base.shield,
-      stamina: isBoss ? (base.stamina * 1.3).round() : base.stamina,
+      stamina: bossEncounter ? (base.stamina * 1.3).round() : base.stamina,
     );
   }
 }

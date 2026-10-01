@@ -235,36 +235,132 @@ class _DoodleButtonBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: DoodleBorderPainter(
+      painter: HalftonePillButtonPainter(
         faceColor: colors.face,
         shadowColor: colors.shadow,
         inkColor: colors.ink,
-        style: style,
       ),
       child: Padding(
-        padding: padding + const EdgeInsets.all(4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (leading != null) ...[
-              leading!,
-              const SizedBox(width: 10),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                color: colors.text,
-                fontSize: fontSize,
-                fontWeight: FontWeight.w900,
-                fontFamily: 'Bangers',
-                letterSpacing: 2.5,
+        padding: padding + const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (leading != null) ...[
+                leading!,
+                const SizedBox(width: 10),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  color: colors.text,
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Bangers',
+                  letterSpacing: 2.5,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// Rounded-edge pill painter with comic Ben-Day halftone dot screentone shading,
+/// crisp ink border, and solid isometric offset drop shadow.
+class HalftonePillButtonPainter extends CustomPainter {
+  const HalftonePillButtonPainter({
+    required this.faceColor,
+    required this.shadowColor,
+    required this.inkColor,
+    this.strokeWidth = 2.5,
+    this.shadowOffset = const Offset(3.0, 4.0),
+    this.dotSpacing = 4.0,
+    this.dotRadius = 1.0,
+  });
+
+  final Color faceColor;
+  final Color shadowColor;
+  final Color inkColor;
+  final double strokeWidth;
+  final Offset shadowOffset;
+  final double dotSpacing;
+  final double dotRadius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0) return;
+
+    final pillRadius = Radius.circular(size.height / 2);
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final pillRRect = RRect.fromRectAndRadius(rect, pillRadius);
+
+    // 1. Isometric Hard Drop Shadow
+    final shadowRRect = RRect.fromRectAndRadius(
+      rect.shift(shadowOffset),
+      pillRadius,
+    );
+    canvas.drawRRect(shadowRRect, Paint()..color = shadowColor);
+
+    // 2. Pill Face Fill
+    canvas.drawRRect(pillRRect, Paint()..color = faceColor);
+
+    // 3. Halftone Screentone Overlay (Clipped inside the pill)
+    canvas.save();
+    canvas.clipRRect(pillRRect);
+
+    final isDarkFace = ThemeData.estimateBrightnessForColor(faceColor) == Brightness.dark;
+    final halftonePaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = isDarkFace
+          ? Colors.white.withValues(alpha: 0.18)
+          : inkColor.withValues(alpha: 0.12);
+
+    for (double y = 2.0; y < size.height; y += dotSpacing) {
+      final isOdd = (y / dotSpacing).round() % 2 == 1;
+      final startX = isOdd ? dotSpacing * 0.5 : 0.0;
+      for (double x = startX; x < size.width; x += dotSpacing) {
+        canvas.drawCircle(Offset(x, y), dotRadius, halftonePaint);
+      }
+    }
+
+    // Subtle gloss highlight along the top rim
+    final highlightPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = Colors.white.withValues(alpha: isDarkFace ? 0.25 : 0.45);
+    final highlightRect = Rect.fromLTWH(
+      size.height * 0.25,
+      2.0,
+      size.width - size.height * 0.5,
+      size.height * 0.35,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(highlightRect, Radius.circular(size.height * 0.2)),
+      highlightPaint,
+    );
+
+    canvas.restore();
+
+    // 4. Solid Crisp Ink Border
+    final inkPaint = Paint()
+      ..color = inkColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawRRect(pillRRect, inkPaint);
+  }
+
+  @override
+  bool shouldRepaint(HalftonePillButtonPainter oldDelegate) =>
+      oldDelegate.faceColor != faceColor ||
+      oldDelegate.shadowColor != shadowColor ||
+      oldDelegate.inkColor != inkColor ||
+      oldDelegate.strokeWidth != strokeWidth;
 }
 
 class DoodleBorderPainter extends CustomPainter {

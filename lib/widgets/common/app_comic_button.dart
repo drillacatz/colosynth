@@ -132,36 +132,38 @@ class _AppComicButtonState extends State<AppComicButton>
                 width: widget.width,
                 height: widget.height,
                 child: CustomPaint(
-                  painter: DoodleBorderPainter(
+                  painter: HalftonePillButtonPainter(
                     faceColor: faceColor,
                     inkColor: colors.ink,
                     shadowColor: colors.shadow,
-                    style: pbStyle,
                   ),
                   child: Padding(
                     padding: widget.padding,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (widget.leading != null) ...[
-                          widget.leading!,
-                          const SizedBox(width: 8),
-                        ],
-                        Text(
-                          widget.label,
-                          style: TextStyle(
-                            fontFamily: 'Bangers',
-                            fontSize: widget.fontSize,
-                            color: textColor,
-                            letterSpacing: 2,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (widget.leading != null) ...[
+                            widget.leading!,
+                            const SizedBox(width: 8),
+                          ],
+                          Text(
+                            widget.label,
+                            style: TextStyle(
+                              fontFamily: 'Bangers',
+                              fontSize: widget.fontSize,
+                              color: textColor,
+                              letterSpacing: 2,
+                            ),
                           ),
-                        ),
-                        if (widget.trailing != null) ...[
-                          const SizedBox(width: 8),
-                          widget.trailing!,
+                          if (widget.trailing != null) ...[
+                            const SizedBox(width: 8),
+                            widget.trailing!,
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),

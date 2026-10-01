@@ -46,7 +46,9 @@ class RecruitConfirmOverlay extends StatelessWidget {
         color: Colors.transparent,
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 32),
-          padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+          ),
           decoration: BoxDecoration(
             color: const Color(0xFFFDFDFB),
             borderRadius: BorderRadius.circular(4),
@@ -55,95 +57,102 @@ class RecruitConfirmOverlay extends StatelessWidget {
               BoxShadow(color: Color(0x66000000), offset: Offset(6, 6)),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'RECRUIT?',
-                style: TextStyle(
-                  fontFamily: 'Bangers',
-                  fontSize: 32,
-                  color: Color(0xFF1A1A1A),
-                  letterSpacing: 4,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.black12),
-                ),
-                child: Icon(
-                  character.icon,
-                  size: 48,
-                  color: const Color(0xFF1A1A1A),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Confirm recruitment of ${character.name}?',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF444444),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.brush, color: Color(0xFF1A1A1A), size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${character.paintCost}',
+                  const Text(
+                    'RECRUIT?',
                     style: TextStyle(
                       fontFamily: 'Bangers',
-                      fontSize: 24,
-                      color:
-                          canAfford ? const Color(0xFF1A1A1A) : const Color(0xFF888888),
-                      letterSpacing: 1,
+                      fontSize: 32,
+                      color: Color(0xFF1A1A1A),
+                      letterSpacing: 4,
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.black12),
+                    ),
+                    child: Icon(
+                      character.icon,
+                      size: 48,
+                      color: const Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Confirm recruitment of ${character.name}?',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF444444),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.brush, color: Color(0xFF1A1A1A), size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${character.paintCost}',
+                        style: TextStyle(
+                          fontFamily: 'Bangers',
+                          fontSize: 24,
+                          color:
+                              canAfford ? const Color(0xFF1A1A1A) : const Color(0xFF888888),
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (!canAfford) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'INSUFFICIENT PAINT',
+                      style: TextStyle(
+                        color: Color(0xFF555555),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ComicButton(
+                          label: 'CANCEL',
+                          style: PBStyle.dark,
+                          onTap: onCancel,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ComicButton(
+                          label: 'CONFIRM',
+                          style: PBStyle.white,
+                          onTap: canAfford ? onConfirm : null,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              if (!canAfford) ...[
-                const SizedBox(height: 8),
-                const Text(
-                  'INSUFFICIENT PAINT',
-                  style: TextStyle(
-                    color: Color(0xFF555555),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: ComicButton(
-                      label: 'CANCEL',
-                      style: PBStyle.dark,
-                      onTap: onCancel,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ComicButton(
-                      label: 'CONFIRM',
-                      style: PBStyle.white,
-                      onTap: canAfford ? onConfirm : null,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         )
             .animate()

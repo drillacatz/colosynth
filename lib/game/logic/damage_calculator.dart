@@ -73,8 +73,14 @@ class DamageCalculator {
     int playerShield = 0,
   }) {
     final baseAtk = (enemyAtk * 1.0).round();
-    final effectiveDef = playerDef > 0 ? playerDef : playerShield;
-    final net = isPlayerGuarding ? max(0, baseAtk - effectiveDef) : baseAtk;
-    return net.clamp(DamageConstants.minDamage, DamageConstants.maxDamage);
+    if (isPlayerGuarding) {
+      final effectiveDef = playerDef > 0 ? playerDef : playerShield;
+      final reduced = max(0, baseAtk - effectiveDef);
+      final finalDmg = playerDamageReduction > 0
+          ? (reduced * (1.0 - playerDamageReduction)).round()
+          : reduced;
+      return finalDmg.clamp(DamageConstants.minDamage, DamageConstants.maxDamage);
+    }
+    return baseAtk.clamp(DamageConstants.minDamage, DamageConstants.maxDamage);
   }
 }

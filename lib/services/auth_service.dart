@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -29,13 +30,13 @@ class AuthService {
   AuthService._();
   static final instance = AuthService._();
 
-  final _auth = FirebaseAuth.instance;
+  FirebaseAuth? get _auth => Firebase.apps.isNotEmpty ? FirebaseAuth.instance : null;
   final _googleSignIn = GoogleSignIn.instance;
   final _userDataService = UserDataService();
   bool _googleInitialized = false;
 
-  Stream<User?> get userStream => _auth.authStateChanges();
-  User? get currentUser => _auth.currentUser;
+  Stream<User?> get userStream => _auth?.authStateChanges() ?? const Stream.empty();
+  User? get currentUser => _auth?.currentUser;
   bool get isGuest => currentUser?.isAnonymous ?? true;
 
   Future<void> _ensureGoogleInitialized() async {
@@ -62,9 +63,15 @@ class AuthService {
   }
 
   Future<User?> signInAnonymously() async {
+    final auth = _auth;
+    if (auth == null) {
+      AppLogger.w('AuthService', 'Firebase is not initialized. Operating in local guest mode.');
+      await _postSignInSetup('local_guest_offline');
+      return null;
+    }
     try {
       final result =
-          await _auth.signInAnonymously().timeout(const Duration(seconds: 8));
+          await auth.signInAnonymously().timeout(const Duration(seconds: 8));
       final user = result.user;
       if (user != null) {
         await _userDataService.initUser(user.uid, isGuest: true);
@@ -134,8 +141,15 @@ class AuthService {
       }
     }
 
-    final result = await _auth.signInWithCredential(credential);
-    final user = result.user!;
+    final fbAuth = _auth;
+    if (fbAuth == null) {
+      return const AuthResult.failure(AuthFailureReason.unknown);
+    }
+    final result = await fbAuth.signInWithCredential(credential);
+    final user = result.user;
+    if (user == null) {
+      return const AuthResult.failure(AuthFailureReason.unknown);
+    }
     await _userDataService.initUser(user.uid, isGuest: false);
     await _postSignInSetup(user.uid);
     return AuthResult.success(user);
@@ -151,8 +165,10 @@ class AuthService {
   }
 
   Future<User?> _mergeAndSignIn(AuthCredential credential) async {
+    final auth = _auth;
+    if (auth == null) return null;
     final guestUid = currentUser?.uid;
-    final result = await _auth.signInWithCredential(credential);
+    final result = await auth.signInWithCredential(credential);
     final user = result.user;
     if (user == null) return null;
     if (guestUid != null) {
@@ -173,7 +189,9 @@ class AuthService {
     try {
       await AchievementService.instance.signOut();
     } catch (_) {}
-    await _auth.signOut();
+    try {
+      await _auth?.signOut();
+    } catch (_) {}
     await IapService.instance.logOut();
     await SaveManager.instance.unbindUser();
     await signInAnonymously();
@@ -198,7 +216,7 @@ class AuthService {
   }
 
   Future<void> refreshUser() async {
-    await _auth.currentUser?.reload();
+    await currentUser?.reload();
   }
 }
 

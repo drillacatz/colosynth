@@ -1,7 +1,9 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
+import 'package:colosynth/game_settings.dart';
+import 'package:colosynth/services/audio_service.dart';
 import 'package:colosynth/services/level_progress_service.dart';
-import 'package:colosynth/screens/theme/shared_painters.dart';
 import 'package:colosynth/screens/theme/tokens.dart';
 import 'package:colosynth/guide/guide_anchor.dart';
 
@@ -45,6 +47,9 @@ class _GameBottomBarState extends State<GameBottomBar>
     with TickerProviderStateMixin {
   late final List<AnimationController> _tapCtrls;
   late final List<Animation<double>> _scaleAnims;
+  late final AnimationController _slamCtrl;
+  late final Animation<double> _slamScaleAnim;
+  late final Animation<double> _slamOpacityAnim;
 
   static const _tapSpring =
       SpringDescription(mass: 1.0, stiffness: 500.0, damping: 28.0);
@@ -61,6 +66,26 @@ class _GameBottomBarState extends State<GameBottomBar>
         .map((c) => Tween<double>(begin: 1.0, end: 0.78)
             .animate(CurvedAnimation(parent: c, curve: Curves.easeIn)))
         .toList();
+
+    _slamCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+      value: 1.0,
+    );
+    _slamScaleAnim = Tween<double>(begin: 2.2, end: 1.0).animate(
+      CurvedAnimation(parent: _slamCtrl, curve: Curves.easeOutBack),
+    );
+    _slamOpacityAnim = Tween<double>(begin: 0.35, end: 1.0).animate(
+      CurvedAnimation(parent: _slamCtrl, curve: Curves.easeOutQuad),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant GameBottomBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedIndex != widget.selectedIndex) {
+      _slamCtrl.forward(from: 0.0);
+    }
   }
 
   @override
@@ -68,18 +93,24 @@ class _GameBottomBarState extends State<GameBottomBar>
     for (final c in _tapCtrls) {
       c.dispose();
     }
+    _slamCtrl.dispose();
     super.dispose();
   }
 
   void _handleTap(int i) {
-    ComicButton.playButtonSfx();
+    if (i != widget.selectedIndex) {
+      AudioService.instance.playSfx(SfxEvent.splashInk);
+      _slamCtrl.forward(from: 0.0);
+      widget.onTap(i);
+    } else {
+      ComicButton.playButtonSfx();
+    }
     final ctrl = _tapCtrls[i];
     ctrl.forward().then((_) {
       if (mounted) {
         ctrl.animateWith(SpringSimulation(_tapSpring, 1.0, 0.0, -5.0));
       }
     });
-    widget.onTap(i);
   }
 
   @override
@@ -116,6 +147,8 @@ class _GameBottomBarState extends State<GameBottomBar>
                       tab: tab,
                       isSelected: isSelected,
                       isUnlocked: isUnlocked,
+                      slamScale: _slamScaleAnim,
+                      slamOpacity: _slamOpacityAnim,
                       showRedDot: widget.showRedDots?[i] ?? false,
                     ),
                   ),
@@ -134,12 +167,16 @@ class _TabItem extends StatelessWidget {
     required this.tab,
     required this.isSelected,
     required this.isUnlocked,
+    required this.slamScale,
+    required this.slamOpacity,
     this.showRedDot = false,
   });
 
   final TabInfo tab;
   final bool isSelected;
   final bool isUnlocked;
+  final Animation<double> slamScale;
+  final Animation<double> slamOpacity;
   final bool showRedDot;
 
   @override
@@ -157,17 +194,28 @@ class _TabItem extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             if (showSelected)
-              CustomPaint(
-                painter: SketchyHighlightPainter(
-                  color: activeColor,
-                  strokeWidth: 1.2,
-                  jitter: 0.8,
-                ),
-                child: Container(
-                  width: 42,
-                  height: 28,
-                  alignment: Alignment.center,
-                  child: Icon(tab.activeIcon, color: activeColor, size: 20),
+              AnimatedBuilder(
+                animation: slamScale,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: slamScale.value,
+                    alignment: Alignment.center,
+                    child: Opacity(
+                      opacity: slamOpacity.value.clamp(0.0, 1.0),
+                      child: child,
+                    ),
+                  );
+                },
+                child: SizedBox(
+                  width: 50,
+                  height: 30,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const LoopingTabBackground(),
+                      Icon(tab.activeIcon, color: Colors.white, size: 20),
+                    ],
+                  ),
                 ),
               )
             else
@@ -309,3 +357,68 @@ class _PulsingRedDotState extends State<_PulsingRedDot>
     );
   }
 }
+
+/// Looping animated background for the active bottom bar navigation tab.
+/// Supports native animated PNG (APNG) or GIF assets via [assetPath],
+/// with a continuous organic comic ink pulse loop.
+class LoopingTabBackground extends StatefulWidget {
+  const LoopingTabBackground({
+    super.key,
+    this.assetPath = 'assets/images/brush_stroke.png',
+    this.width = 46.0,
+    this.height = 28.0,
+  });
+
+  final String assetPath;
+  final double width;
+  final double height;
+
+  @override
+  State<LoopingTabBackground> createState() => _LoopingTabBackgroundState();
+}
+
+class _LoopingTabBackgroundState extends State<LoopingTabBackground>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _loopCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loopCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _loopCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _loopCtrl,
+      builder: (context, child) {
+        final scale = 1.0 + (_loopCtrl.value * 0.05);
+        final rotation = math.sin(_loopCtrl.value * math.pi) * 0.025;
+        return Transform.rotate(
+          angle: rotation,
+          child: Transform.scale(
+            scale: scale,
+            child: child,
+          ),
+        );
+      },
+      child: Image.asset(
+        widget.assetPath,
+        width: widget.width,
+        height: widget.height,
+        fit: BoxFit.fill,
+        gaplessPlayback: true,
+      ),
+    );
+  }
+}
+

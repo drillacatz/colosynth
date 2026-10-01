@@ -6,6 +6,7 @@ import 'package:colosynth/screens/theme/tokens.dart';
 import 'package:colosynth/screens/feedback/feedback_faq_screen.dart';
 import 'package:colosynth/screens/settings/contact_screen.dart';
 import 'package:colosynth/screens/settings/devlog_screen.dart';
+import 'package:colosynth/widgets/transitions/diagonal_slice_route.dart';
 
 class AppSupportPanel extends StatelessWidget {
   const AppSupportPanel({super.key});
@@ -17,25 +18,22 @@ class AppSupportPanel extends StatelessWidget {
 
   void _openFeedback(BuildContext context) {
     ComicButton.playButtonSfx();
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(builder: (_) => const FeedbackFaqScreen()),
+    Navigator.of(context, rootNavigator: true).push(
+      DiagonalSlicePageRoute<void>(builder: (_) => const FeedbackFaqScreen()),
     );
   }
 
   void _openContact(BuildContext context) {
     ComicButton.playButtonSfx();
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(builder: (_) => const ContactScreen()),
+    Navigator.of(context, rootNavigator: true).push(
+      DiagonalSlicePageRoute<void>(builder: (_) => const ContactScreen()),
     );
   }
 
   void _openDevlog(BuildContext context) {
     ComicButton.playButtonSfx();
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(builder: (_) => const DevlogScreen()),
+    Navigator.of(context, rootNavigator: true).push(
+      DiagonalSlicePageRoute<void>(builder: (_) => const DevlogScreen()),
     );
   }
 
@@ -57,35 +55,42 @@ class AppSupportPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _SupportSquareButton(
-          icon: Icons.chat_bubble_outline,
-          tooltip: 'Feedback & FAQ',
-          onTap: () => _openFeedback(context),
-        ),
-        _SupportSquareButton(
-          icon: Icons.mail_outline,
-          tooltip: 'Contact Us',
-          onTap: () => _openContact(context),
-        ),
-        _SupportSquareButton(
-          icon: Icons.auto_stories_outlined,
-          tooltip: 'Devlog & Versions',
-          onTap: () => _openDevlog(context),
-        ),
-        _SupportSquareButton(
-          icon: Icons.share_outlined,
-          tooltip: 'Share App',
-          onTap: _shareApp,
-        ),
-        _SupportSquareButton(
-          icon: Icons.star_outline,
-          tooltip: 'Rate App',
-          onTap: _rateApp,
-        ),
-      ],
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _SupportSquareButton(
+            icon: Icons.chat_bubble_outline,
+            tooltip: 'Feedback & FAQ',
+            onTap: () => _openFeedback(context),
+          ),
+          const SizedBox(width: 8),
+          _SupportSquareButton(
+            icon: Icons.mail_outline,
+            tooltip: 'Contact Us',
+            onTap: () => _openContact(context),
+          ),
+          const SizedBox(width: 8),
+          _SupportSquareButton(
+            icon: Icons.auto_stories_outlined,
+            tooltip: 'Devlog & Versions',
+            onTap: () => _openDevlog(context),
+          ),
+          const SizedBox(width: 8),
+          _SupportSquareButton(
+            icon: Icons.share_outlined,
+            tooltip: 'Share App',
+            onTap: _shareApp,
+          ),
+          const SizedBox(width: 8),
+          _SupportSquareButton(
+            icon: Icons.star_outline,
+            tooltip: 'Rate App',
+            onTap: _rateApp,
+          ),
+        ],
+      ),
     );
   }
 }

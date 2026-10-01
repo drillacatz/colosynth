@@ -1,4 +1,3 @@
-import 'package:colosynth/services/battle_stats_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -69,6 +68,7 @@ class ProgressionService {
   static final ProgressionService instance = ProgressionService._();
   
   final Set<UnlockableFeature> _permanentUnlocks = {};
+  Set<UnlockableFeature> get permanentUnlocks => Set.unmodifiable(_permanentUnlocks);
   SharedPreferences? _prefs;
 
   Future<void> init() async {
@@ -178,16 +178,12 @@ class ProgressionService {
   bool isUnlocked(UnlockableFeature feature, int playerLevel) {
     if (_permanentUnlocks.contains(feature)) return true;
 
-    bool unlocked;
-    if (feature == UnlockableFeature.characterScreen) {
-
-      unlocked = BattleStatsService.instance.isCharacterScreenUnlocked || 
-                 playerLevel >= requiredLevel(feature);
-    } else {
-      unlocked = playerLevel >= requiredLevel(feature);
+    if (feature == UnlockableFeature.characterScreen ||
+        feature == UnlockableFeature.upgradeTab) {
+      return false;
     }
 
-    return unlocked;
+    return playerLevel >= requiredLevel(feature);
   }
 
   void checkAndMarkUnlocks(int playerLevel) {

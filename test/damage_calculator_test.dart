@@ -36,11 +36,20 @@ void main() {
       expect(dmg, equals(0));
     });
 
-    test('slash damage produces 0.25x baseAtk normal damage', () {
+    test('slash damage produces 0.20x baseAtk normal damage', () {
       final dmg = DamageCalculator.slash(
         baseAtk: 400,
       );
-      expect(dmg, equals(100));
+      expect(dmg, equals(80));
+    });
+
+    test('slash damage ignores enemy DEF when enemy is NOT guarding', () {
+      final dmg = DamageCalculator.slash(
+        baseAtk: 400,
+        enemyDef: 30,
+        isEnemyGuarding: false,
+      );
+      expect(dmg, equals(80));
     });
 
     test('slash damage subtracts enemy DEF when enemy is guarding', () {
@@ -49,13 +58,13 @@ void main() {
         enemyDef: 30,
         isEnemyGuarding: true,
       );
-      expect(dmg, equals(70));
+      expect(dmg, equals(50));
     });
 
     test('activeSkill produces 1.0x baseAtk, higher than standard slash', () {
       final slashDmg = DamageCalculator.slash(baseAtk: 400);
       final skillDmg = DamageCalculator.activeSkill(baseAtk: 400);
-      expect(slashDmg, equals(100));
+      expect(slashDmg, equals(80));
       expect(skillDmg, equals(400));
       expect(skillDmg, greaterThan(slashDmg));
     });

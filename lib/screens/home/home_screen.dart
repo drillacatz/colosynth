@@ -1,15 +1,18 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:colosynth/services/purchase_ledger_service.dart';
 
 import 'package:colosynth/providers/navigation_provider.dart';
 import 'package:colosynth/providers/save_provider.dart';
 import 'package:colosynth/providers/service_providers.dart';
 import 'package:colosynth/providers/store_provider.dart';
 import 'package:colosynth/providers/tournament_provider.dart';
+import 'package:colosynth/providers/feature_unlock_provider.dart';
 import 'package:colosynth/game_settings.dart';
-import 'package:colosynth/services/audio_service.dart';
 import 'package:colosynth/services/level_progress_service.dart';
 import 'package:colosynth/services/review_service.dart';
 
@@ -79,6 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      unawaited(ref.read(purchaseLedgerServiceProvider).reconcilePendingAwards(ref));
       final checkInState = ref.read(dailyCheckInProvider);
       if (!checkInState.isClaimedToday || checkInState.missedYesterday) {
         DailyCheckInDialog.show(context);
@@ -90,40 +94,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _onTabTap(int index) {
     final currentIdx = ref.read(navigationProvider);
-    final playerLevel = ref.read(accountLevelProvider.select((l) => l.accountLevel));
     final tabToken = _tabs[index];
+    final unlockState = ref.read(featureUnlockProvider);
 
-    if (index == 3) {
-      final tutorialDone = ref.read(tutorialCompletedProvider);
-      if (!tutorialDone) {
-        LockedFeatureOverlay.show(
-          context,
-          customTitle: 'Characters Locked',
-          customDescription: 'Complete the training ground tutorial levels first to unlock Characters!',
-          customConditionText: 'Complete Tutorial',
-          customEmoji: '🛡️',
-        );
-        return;
-      }
+    if (index == 3 && !unlockState.isCharacterScreenUnlocked) {
+      LockedFeatureOverlay.show(
+        context,
+        customTitle: 'Characters Locked',
+        customDescription: 'Complete the training ground tutorial levels first to unlock Characters!',
+        customConditionText: 'Complete Tutorial',
+        customEmoji: '🛡️',
+      );
+      return;
     }
 
-    if (index == 1) {
-      final stagesCleared = ref.read(tournamentProgressProvider).keys.where((k) => !k.startsWith('tutorial_')).length;
-      if (stagesCleared < 3) {
-        LockedFeatureOverlay.show(
-          context,
-          customTitle: 'Upgrade Locked',
-          customDescription: 'Clear 3 or more tournament stages to unlock the Upgrade tab.',
-          customConditionText: 'Clear ${3 - stagesCleared} more stage(s)',
-          customEmoji: '⚡',
-        );
-        return;
-      }
+    if (index == 1 && !unlockState.isUpgradeScreenUnlocked) {
+      final stagesCleared = ref.read(tournamentProgressProvider).keys.where((k) => !k.startsWith('tutorial_') && !k.startsWith('tier_')).length;
+      LockedFeatureOverlay.show(
+        context,
+        customTitle: 'Upgrade Locked',
+        customDescription: 'Clear 3 or more tournament stages to unlock the Upgrade tab.',
+        customConditionText: 'Clear ${3 - stagesCleared} more stage(s)',
+        customEmoji: '⚡',
+      );
+      return;
     }
 
-    if (tabToken.feature != null &&
-        !ProgressionService.instance
-            .isUnlocked(tabToken.feature!, playerLevel)) {
+    if (tabToken.feature != null && !unlockState.isUnlocked(tabToken.feature)) {
+      final playerLevel = ref.read(accountLevelProvider.select((l) => l.accountLevel));
       _showLockedMessage(
           index,
           ProgressionService.instance.requiredLevel(tabToken.feature!),
@@ -195,7 +193,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(navigationProvider);
-    final accountLevel = ref.watch(accountLevelProvider.select((l) => l.accountLevel));
 
 
     ref.listen<int>(navigationProvider, (prev, next) {
@@ -228,10 +225,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       },
     );
 
-    final svc = ProgressionService.instance;
+    final unlockState = ref.watch(featureUnlockProvider);
     final tabUnlocked = _tabs.map((t) {
-      return t.feature == null ||
-          svc.isUnlocked(t.feature!, accountLevel);
+      return unlockState.isUnlocked(t.feature);
     }).toList();
 
     final dailyInk = ref.watch(dailyInkProvider).value;

@@ -166,110 +166,127 @@ class _RewardPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 28),
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
-        decoration: BoxDecoration(
-          color: _kCardBg,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: _kInk, width: 2.0),
-          boxShadow: [
-            BoxShadow(
-              color: _kInk.withValues(alpha: 0.40),
-              blurRadius: 0,
-              offset: const Offset(5, 5),
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 28),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+          ),
+          decoration: BoxDecoration(
+            color: _kCardBg,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: _kInk, width: 2.0),
+            boxShadow: [
+              BoxShadow(
+                color: _kInk.withValues(alpha: 0.40),
+                blurRadius: 0,
+                offset: const Offset(5, 5),
+              ),
+              BoxShadow(
+                color: _kGold.withValues(alpha: 0.08),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: _BurstTitle(text: 'CLAIMED!'),
+                  ),
+                  const SizedBox(height: 4),
+                  if (stars != null) ...[
+                    const SizedBox(height: 14),
+                    MiniStarRow(stars: stars!),
+                  ],
+                  const SizedBox(height: 20),
+                  if (inkReward > 0) ...[
+                    RewardRow(
+                      icon: Icons.water_drop,
+                      color: _kInkBlue,
+                      label: 'INK',
+                      value: inkReward,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (paintReward > 0) ...[
+                    RewardRow(
+                      icon: Icons.brush,
+                      color: _kPaintPink,
+                      label: 'PAINT',
+                      value: paintReward,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (xpReward > 0) ...[
+                    RewardRow(
+                      icon: Icons.star,
+                      color: AppColors.comicYellow,
+                      label: 'XP',
+                      value: xpReward,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  for (final entry in expItems.entries) ...[
+                    if (entry.value > 0) ...[
+                      _buildExpItemRow(entry.key, entry.value),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+                  if (_hasTierBonus) ...[
+                    const SizedBox(height: 16),
+                    Container(height: 1, color: const Color(0xFFE0D8D0)),
+                    const SizedBox(height: 10),
+                    Text(
+                      '+ $bonusLabel TIER BONUS',
+                      style: TextStyle(
+                        fontFamily: 'Bangers',
+                        fontSize: 11,
+                        letterSpacing: 3,
+                        color: _kSub,
+                      ),
+                    ),
+                    if (bonusInk > 0) ...[
+                      const SizedBox(height: 8),
+                      RewardRow(
+                        icon: Icons.water_drop,
+                        color: _kInkBlue,
+                        label: 'INK',
+                        value: bonusInk,
+                      ),
+                    ],
+                    if (bonusPaint > 0) ...[
+                      const SizedBox(height: 8),
+                      RewardRow(
+                        icon: Icons.brush,
+                        color: _kPaintPink,
+                        label: 'PAINT',
+                        value: bonusPaint,
+                      ),
+                    ],
+                  ],
+                  const SizedBox(height: 28),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: ComicButton(
+                      label: 'CONTINUE',
+                      style: PBStyle.white,
+                      fontSize: 18,
+                      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 13),
+                      onTap: onContinue,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            BoxShadow(
-              color: _kGold.withValues(alpha: 0.08),
-              blurRadius: 20,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const _BurstTitle(text: 'CLAIMED!'),
-            const SizedBox(height: 4),
-            if (stars != null) ...[
-              const SizedBox(height: 14),
-              MiniStarRow(stars: stars!),
-            ],
-            const SizedBox(height: 20),
-            if (inkReward > 0) ...[
-              RewardRow(
-                icon: Icons.water_drop,
-                color: _kInkBlue,
-                label: 'INK',
-                value: inkReward,
-              ),
-              const SizedBox(height: 8),
-            ],
-            if (paintReward > 0) ...[
-              RewardRow(
-                icon: Icons.brush,
-                color: _kPaintPink,
-                label: 'PAINT',
-                value: paintReward,
-              ),
-              const SizedBox(height: 8),
-            ],
-            if (xpReward > 0) ...[
-              RewardRow(
-                icon: Icons.star,
-                color: AppColors.comicYellow,
-                label: 'XP',
-                value: xpReward,
-              ),
-              const SizedBox(height: 8),
-            ],
-            for (final entry in expItems.entries) ...[
-              if (entry.value > 0) ...[
-                _buildExpItemRow(entry.key, entry.value),
-                const SizedBox(height: 8),
-              ],
-            ],
-            if (_hasTierBonus) ...[
-              const SizedBox(height: 16),
-              Container(height: 1, color: const Color(0xFFE0D8D0)),
-              const SizedBox(height: 10),
-              Text(
-                '+ $bonusLabel TIER BONUS',
-                style: TextStyle(
-                  fontFamily: 'Bangers',
-                  fontSize: 11,
-                  letterSpacing: 3,
-                  color: _kSub,
-                ),
-              ),
-              if (bonusInk > 0) ...[
-                const SizedBox(height: 8),
-                RewardRow(
-                  icon: Icons.water_drop,
-                  color: _kInkBlue,
-                  label: 'INK',
-                  value: bonusInk,
-                ),
-              ],
-              if (bonusPaint > 0) ...[
-                const SizedBox(height: 8),
-                RewardRow(
-                  icon: Icons.brush,
-                  color: _kPaintPink,
-                  label: 'PAINT',
-                  value: bonusPaint,
-                ),
-              ],
-            ],
-            const SizedBox(height: 28),
-            ComicButton(
-              label: 'CONTINUE',
-              style: PBStyle.white,
-              fontSize: 18,
-              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 13),
-              onTap: onContinue,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -305,11 +322,14 @@ class _RewardPanel extends StatelessWidget {
       icon = Icons.book;
     }
 
-    return RewardRow(
-      icon: icon,
-      color: color,
-      label: label,
-      value: count,
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: RewardRow(
+        icon: icon,
+        color: color,
+        label: label,
+        value: count,
+      ),
     );
   }
 }

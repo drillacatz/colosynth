@@ -88,28 +88,14 @@ class ItemDetailsOverlay extends ConsumerWidget {
                 style: TextStyle(color: Colors.grey[800], fontSize: 13),
               ),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A1A1A),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  onPressed: () {
+              Center(
+                child: ComicButton(
+                  label: 'GO TO UPGRADE',
+                  style: PBStyle.dark,
+                  onTap: () {
                     onClose();
                     ref.read(navigationProvider.notifier).selectTab(1);
                   },
-                  child: const Text(
-                    'GO TO UPGRADE',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'Bangers',
-                      letterSpacing: 2,
-                    ),
-                  ),
                 ),
               ),
             ],

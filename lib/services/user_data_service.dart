@@ -1,5 +1,6 @@
 
 import 'dart:math' as math;
+import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:colosynth/utils/app_logger.dart';
@@ -7,10 +8,11 @@ import 'package:colosynth/growth/character/character_progression.dart';
 import 'package:colosynth/services/sp_manager.dart';
 
 class UserDataService {
-  final _db = FirebaseFirestore.instance;
+  FirebaseFirestore? get _db =>
+      Firebase.apps.isNotEmpty ? FirebaseFirestore.instance : null;
 
-  DocumentReference<Map<String, dynamic>> _userDoc(String uid) =>
-      _db.collection('users').doc(uid);
+  DocumentReference<Map<String, dynamic>>? _userDoc(String uid) =>
+      _db?.collection('users').doc(uid);
 
   Future<void> initUser(
     String uid, {
@@ -18,6 +20,7 @@ class UserDataService {
   }) async {
     if (uid == 'local_guest_offline') return;
     final ref = _userDoc(uid);
+    if (ref == null) return;
     try {
       final snap = await ref.get().timeout(const Duration(seconds: 4));
       if (snap.exists) {
@@ -53,23 +56,28 @@ class UserDataService {
   }
 
   Future<void> deleteUser(String uid) async {
+    final doc = _userDoc(uid);
+    if (doc == null) return;
     try {
-      final txnSnap = await _userDoc(uid).collection('transactions').get();
-      for (final doc in txnSnap.docs) {
-        await doc.reference.delete();
+      final txnSnap = await doc.collection('transactions').get();
+      for (final d in txnSnap.docs) {
+        await d.reference.delete();
       }
-      await _userDoc(uid).delete();
+      await doc.delete();
     } catch (e, stack) {
       AppLogger.e('UserDataService', 'deleteUser error: $e', stack);
     }
   }
 
   Future<void> migrateGuestData(String guestUid, String newUid) async {
-    final guestSnap = await _userDoc(guestUid).get();
+    final guestDoc = _userDoc(guestUid);
+    final newDoc = _userDoc(newUid);
+    if (guestDoc == null || newDoc == null) return;
+    final guestSnap = await guestDoc.get();
     if (!guestSnap.exists) return;
 
     final g = guestSnap.data()!;
-    final newSnap = await _userDoc(newUid).get();
+    final newSnap = await newDoc.get();
     final n = newSnap.exists ? newSnap.data()! : <String, dynamic>{};
 
     final mergedInk = _intOf(g, 'ink') + _intOf(n, 'ink');
@@ -138,7 +146,7 @@ class UserDataService {
 
     final mergedGamesPlayed = _intOf(g, 'gamesPlayed') + _intOf(n, 'gamesPlayed');
 
-    await _userDoc(newUid).set({
+    await newDoc.set({
       'isGuest': false,
       'ink': mergedInk,
       'paint': mergedPaint,
@@ -158,7 +166,7 @@ class UserDataService {
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    await _userDoc(guestUid).delete();
+    await guestDoc.delete();
   }
 
   int _intOf(Map<String, dynamic> m, String key) =>
@@ -210,8 +218,10 @@ class UserDataService {
           : SPKeys.loginRewardClaimedPlayGames;
       if (prefs.getBool(key) == true) return true;
     }
+    final ref = _userDoc(uid);
+    if (ref == null) return false;
     try {
-      final snap = await _userDoc(uid)
+      final snap = await ref
           .get()
           .timeout(const Duration(seconds: 4));
       final claimed = snap.data()?['loginRewardClaimed'] as Map?;
@@ -230,10 +240,22 @@ class UserDataService {
     SharedPreferences? prefs,
   }) async {
     if (uid == 'local_guest_offline') return false;
+    final db = _db;
+    final ref = _userDoc(uid);
+    if (db == null || ref == null) {
+      if (prefs != null) {
+        final key = type == 'google'
+            ? SPKeys.loginRewardClaimedGoogle
+            : SPKeys.loginRewardClaimedPlayGames;
+        if (prefs.getBool(key) == true) return false;
+        await prefs.setBool(key, true);
+        return true;
+      }
+      return false;
+    }
     try {
-      final ref = _userDoc(uid);
       bool didClaim = false;
-      await _db.runTransaction((txn) async {
+      await db.runTransaction((txn) async {
         final snap = await txn.get(ref);
         final claimed = (snap.data()?['loginRewardClaimed'] as Map?) ?? {};
         if (claimed[type] == true) {
@@ -273,8 +295,10 @@ class UserDataService {
   }) async {
     await prefs.setString(SPKeys.customDisplayName, name);
     if (uid == 'local_guest_offline') return;
+    final ref = _userDoc(uid);
+    if (ref == null) return;
     try {
-      await _userDoc(uid).set(
+      await ref.set(
         {'customDisplayName': name, 'updatedAt': FieldValue.serverTimestamp()},
         SetOptions(merge: true),
       );

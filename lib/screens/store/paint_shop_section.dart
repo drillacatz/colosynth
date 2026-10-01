@@ -83,10 +83,10 @@ class _PaintShopSectionState extends State<PaintShopSection> {
         const _SectionTitle(title: 'COMBO PACKS (INK + PAINT)'),
         const SizedBox(height: 8),
         GridView.count(
-          crossAxisCount: 2,
+          crossAxisCount: 3,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 1.4,
+          childAspectRatio: 0.88,
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
           children: combos.asMap().entries.map((entry) {
@@ -172,13 +172,19 @@ class _ComboBundleGridCard extends ConsumerWidget {
   final ComboBundle bundle;
   final String priceString;
 
+  String _formatInk(int ink) {
+    if (ink >= 1000) return '${ink ~/ 1000}k';
+    return '$ink';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ShopCard(
       icon: Icons.auto_awesome,
       mainLabel: bundle.label,
-      subLabel: '${bundle.ink} INK + ${bundle.paint}P\n$priceString',
+      subLabel: '${_formatInk(bundle.ink)} INK + ${bundle.paint}P\n$priceString',
       highlighted: true,
+      compact: true,
       accentColor: const Color(0xFFFF9800),
       onTap: () => _purchase(context, ref),
     );
@@ -260,8 +266,8 @@ class _StarterBundleCard extends ConsumerWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00E5FF),
               foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
+              shape: const StadiumBorder(
+                side: BorderSide(color: Color(0xFF1A1A1A), width: 1.5),
               ),
             ),
             child: Text(

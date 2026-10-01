@@ -104,72 +104,80 @@ class _LockedFeatureOverlayState extends State<LockedFeatureOverlay> {
             child: Stack(
               children: [
                 const Positioned.fill(child: NotebookBackground()),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 30, 24, 26),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const _LockedBadge(),
-                      const SizedBox(height: 14),
-                      const Text(
-                        '✦  FEATURE LOCKED  ✦',
-                        style: TextStyle(
-                          color: AppColors.sketchGray,
-                          fontSize: 9,
-                          letterSpacing: 4,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (emoji.isNotEmpty) ...[
-                        Text(
-                          emoji,
-                          style: const TextStyle(fontSize: 28, height: 1.0),
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                      Text(
-                        title.toUpperCase(),
-                        style: const TextStyle(
-                          fontFamily: 'Bangers',
-                          fontSize: 24,
-                          color: AppColors.ink,
-                          letterSpacing: 3.5,
-                          height: 1.0,
-                        ),
-                      ),
-                      if (description.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          description,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: AppColors.ink.withValues(alpha: 0.6),
-                            fontSize: 11,
-                            letterSpacing: 0.3,
-                            height: 1.5,
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 30, 24, 26),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const _LockedBadge(),
+                          const SizedBox(height: 14),
+                          const Text(
+                            '✦  FEATURE LOCKED  ✦',
+                            style: TextStyle(
+                              color: AppColors.sketchGray,
+                              fontSize: 9,
+                              letterSpacing: 4,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                      ],
-                      const SizedBox(height: 18),
-                      const Divider(color: Color(0xFFD0D0D0), thickness: 1),
-                      const SizedBox(height: 14),
-                      _UnlockConditionPill(
-                        isCharScreen: isCharScreen,
-                        requiredLevel: widget.requiredLevel,
-                        currentLevel: widget.currentLevel,
-                        customConditionText: widget.customConditionText,
+                          const SizedBox(height: 12),
+                          if (emoji.isNotEmpty) ...[
+                            Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 28, height: 1.0),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                          Text(
+                            title.toUpperCase(),
+                            style: const TextStyle(
+                              fontFamily: 'Bangers',
+                              fontSize: 24,
+                              color: AppColors.ink,
+                              letterSpacing: 3.5,
+                              height: 1.0,
+                            ),
+                          ),
+                          if (description.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              description,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: AppColors.ink.withValues(alpha: 0.6),
+                                fontSize: 11,
+                                letterSpacing: 0.3,
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 18),
+                          const Divider(color: Color(0xFFD0D0D0), thickness: 1),
+                          const SizedBox(height: 14),
+                          _UnlockConditionPill(
+                            isCharScreen: isCharScreen,
+                            requiredLevel: widget.requiredLevel,
+                            currentLevel: widget.currentLevel,
+                            customConditionText: widget.customConditionText,
+                          ),
+                          const SizedBox(height: 24),
+                          AppComicButton(
+                            label: 'GOT IT',
+                            style: AppButtonStyle.dark,
+                            fontSize: 16,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 48, vertical: 11),
+                            onTap: widget.onDismiss,
+                          ).animateButton(delay: 250.ms),
+                        ],
                       ),
-                      const SizedBox(height: 24),
-                      AppComicButton(
-                        label: 'GOT IT',
-                        style: AppButtonStyle.dark,
-                        fontSize: 16,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 48, vertical: 11),
-                        onTap: widget.onDismiss,
-                      ).animateButton(delay: 250.ms),
-                    ],
+                    ),
                   ),
                 ),
               ],

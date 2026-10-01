@@ -131,57 +131,63 @@ class _ShopCardState extends State<ShopCard>
                     ),
                   ],
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: iconBoxSize,
-                      height: iconBoxSize,
-                      decoration: BoxDecoration(
-                        color: iconBg,
-                        borderRadius: BorderRadius.circular(6),
-                        border: widget.highlighted
-                            ? Border.all(color: borderCol.withValues(alpha: 0.4), width: 1.0)
-                            : null,
-                      ),
-                      child: widget.imagePath != null
-                          ? Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: Image.asset(
-                                '${widget.imagePath}.png',
-                                fit: BoxFit.contain,
-                              ),
-                            )
-                          : Icon(widget.icon, color: iconColor, size: iconSize),
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: iconBoxSize,
+                          height: iconBoxSize,
+                          decoration: BoxDecoration(
+                            color: iconBg,
+                            borderRadius: BorderRadius.circular(6),
+                            border: widget.highlighted
+                                ? Border.all(color: borderCol.withValues(alpha: 0.4), width: 1.0)
+                                : null,
+                          ),
+                          child: widget.imagePath != null
+                              ? Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: Image.asset(
+                                    '${widget.imagePath}.png',
+                                    fit: BoxFit.contain,
+                                  ),
+                                )
+                              : Icon(widget.icon, color: iconColor, size: iconSize),
+                        ),
+                        SizedBox(height: gap1),
+                        Text(
+                          widget.mainLabel,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'Bangers',
+                            fontSize: titleSize,
+                            color: fg,
+                            letterSpacing: 1.2,
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          widget.subLabel,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: subSize,
+                            color: subColor,
+                            letterSpacing: 1.0,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: gap1),
-                    Text(
-                      widget.mainLabel,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Bangers',
-                        fontSize: titleSize,
-                        color: fg,
-                        letterSpacing: 1.2,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      widget.subLabel,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: subSize,
-                        color: subColor,
-                        letterSpacing: 1.0,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               if (widget.badgeText != null)

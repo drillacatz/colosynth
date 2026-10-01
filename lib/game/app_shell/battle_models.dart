@@ -1,3 +1,4 @@
+import 'dart:ui' show Color;
 import 'package:colosynth/services/battle_stats_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flame/game.dart';
@@ -14,6 +15,21 @@ import 'package:colosynth/game/event_bus/game_events.dart';
 import 'package:colosynth/game/app_shell/battle_result.dart';
 export 'battle_result.dart';
 
+@immutable
+class SkillCutInData {
+  final String characterId;
+  final String characterName;
+  final String skillName;
+  final Color accentColor;
+
+  const SkillCutInData({
+    required this.characterId,
+    required this.characterName,
+    required this.skillName,
+    required this.accentColor,
+  });
+}
+
 abstract class BattleGameBase extends FlameGame {
   BattleStateMachine get fsm;
   AttackDirection get currentEnemyDirection;
@@ -21,6 +37,7 @@ abstract class BattleGameBase extends FlameGame {
   ValueNotifier<double> get playerHpFraction;
   ValueNotifier<double> get enemyHpFraction;
   ValueNotifier<int> get damageEventNotifier;
+  ValueNotifier<SkillCutInData?> get skillCutInNotifier;
   String get enemyDisplayName;
   Combatant get player;
   Combatant get enemy;
@@ -33,6 +50,7 @@ abstract class BattleGameBase extends FlameGame {
   void onPlayerBlockStart();
   void onPlayerBlockEnd();
   void onPlayerActiveSkill();
+  void resumeFromSkillCutIn();
   void onPlayerDodge({required bool isLeft});
   void onPlayerSwipe(AttackDirection direction);
   void shakeCamera(double amplitude);
@@ -48,6 +66,7 @@ mixin BattleGameApi on FlameGame {
   ValueNotifier<double> get playerHpFraction;
   ValueNotifier<double> get enemyHpFraction;
   ValueNotifier<int> get damageEventNotifier;
+  ValueNotifier<SkillCutInData?> get skillCutInNotifier;
   String get enemyDisplayName;
   Combatant get player;
   Combatant get enemy;
@@ -62,6 +81,7 @@ mixin BattleGameApi on FlameGame {
   void onPlayerBlockStart();
   void onPlayerBlockEnd();
   void onPlayerActiveSkill();
+  void resumeFromSkillCutIn();
   void onPlayerDodge({required bool isLeft});
   void onEnemyStaminaExhausted();
   void resetBattle();

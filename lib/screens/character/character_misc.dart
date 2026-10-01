@@ -39,13 +39,7 @@ class CharacterArtBackdrop extends ConsumerWidget {
           : CharacterPlaceholder(character: character);
     }
 
-    return Positioned(
-      left: 0,
-      top: 156,
-      width: size.width * 0.66,
-      bottom: 0,
-      child: art,
-    );
+    return art;
   }
 }
 
@@ -108,118 +102,126 @@ class CharacterNameBar extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            CustomPaint(
-              painter: NotebookCardPainter(
-                seed: character.role.hashCode,
-                faceColor: AppColors.comicBlue,
-                borderColor: Colors.black.withValues(alpha: 0.15),
-                borderWidth: 1.0,
-                cornerRadius: 2.0,
-                showShadow: true,
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                child: Text(
-                  character.role.toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.paperWhite,
-                    fontSize: 9,
-                    letterSpacing: 3.5,
-                    fontWeight: FontWeight.w900,
-                    fontFamily: 'Bangers',
-                  ),
-                ),
-              ),
-            ),
-            if (level != null) ...[
-              const SizedBox(width: 6),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
               CustomPaint(
                 painter: NotebookCardPainter(
-                  seed: 777,
-                  faceColor: AppColors.paperWhite,
-                  borderColor: AppColors.ink.withValues(alpha: 0.35),
+                  seed: character.role.hashCode,
+                  faceColor: AppColors.comicBlue,
+                  borderColor: Colors.black.withValues(alpha: 0.15),
                   borderWidth: 1.0,
                   cornerRadius: 2.0,
+                  showShadow: true,
                 ),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   child: Text(
-                    'LV.$level',
+                    character.role.toUpperCase(),
                     style: const TextStyle(
-                      color: AppColors.ink,
+                      color: AppColors.paperWhite,
                       fontSize: 9,
-                      letterSpacing: 2,
+                      letterSpacing: 3.5,
                       fontWeight: FontWeight.w900,
                       fontFamily: 'Bangers',
                     ),
                   ),
                 ),
               ),
-            ],
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () {
-                ref.read(characterViewer3dModeProvider.notifier).state = !is3dMode;
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: is3dMode ? AppColors.comicBlue : Colors.black45,
-                  borderRadius: BorderRadius.circular(3),
-                  border: Border.all(
-                    color: is3dMode ? AppColors.comicBlue : Colors.white24,
-                    width: 1,
+              if (level != null) ...[
+                const SizedBox(width: 6),
+                CustomPaint(
+                  painter: NotebookCardPainter(
+                    seed: 777,
+                    faceColor: AppColors.paperWhite,
+                    borderColor: AppColors.ink.withValues(alpha: 0.35),
+                    borderWidth: 1.0,
+                    cornerRadius: 2.0,
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      is3dMode ? Icons.view_in_ar : Icons.portrait,
-                      size: 10,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      is3dMode ? '3D VIEW' : '2D ART',
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    child: Text(
+                      'LV.$level',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.ink,
                         fontSize: 9,
+                        letterSpacing: 2,
                         fontWeight: FontWeight.w900,
                         fontFamily: 'Bangers',
-                        letterSpacing: 1.5,
                       ),
                     ),
-                  ],
+                  ),
+                ),
+              ],
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () {
+                  ref.read(characterViewer3dModeProvider.notifier).state = !is3dMode;
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: is3dMode ? AppColors.comicBlue : Colors.black45,
+                    borderRadius: BorderRadius.circular(3),
+                    border: Border.all(
+                      color: is3dMode ? AppColors.comicBlue : Colors.white24,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        is3dMode ? Icons.view_in_ar : Icons.portrait,
+                        size: 10,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        is3dMode ? '3D VIEW' : '2D ART',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          fontFamily: 'Bangers',
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 5),
-        Text(
-          character.name.toUpperCase(),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 34,
-            fontFamily: 'Bangers',
-            letterSpacing: 4,
-            height: 1.0,
-            shadows: [
-              Shadow(
-                color: Colors.black,
-                blurRadius: 14,
-                offset: Offset(2, 3),
-              ),
-              Shadow(
-                color: Color(0xBB000000),
-                blurRadius: 6,
-              ),
-            ],
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            character.name.toUpperCase(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 34,
+              fontFamily: 'Bangers',
+              letterSpacing: 4,
+              height: 1.0,
+              shadows: [
+                Shadow(
+                  color: Colors.black,
+                  blurRadius: 14,
+                  offset: Offset(2, 3),
+                ),
+                Shadow(
+                  color: Color(0xBB000000),
+                  blurRadius: 6,
+                ),
+              ],
+            ),
           ),
         ),
       ],

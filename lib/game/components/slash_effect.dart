@@ -62,7 +62,9 @@ class SlashEffect extends PositionComponent {
       _burstSpawned = true;
     }
 
-    if (_elapsed >= _totalDuration) removeFromParent();
+    if (_elapsed >= _totalDuration) {
+      if (isMounted) removeFromParent();
+    }
   }
 
   void _buildBladePathRotatedTo(Path path, double halfLen, double halfWidth) {

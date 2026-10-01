@@ -201,6 +201,7 @@ class PlayerComponent extends PositionComponent
       case BattleState.playerSlash:
         playAnimation(CombatAnimation.attack);
       case BattleState.playerHurt:
+      case BattleState.blockedRecoil:
         playAnimation(CombatAnimation.hurt);
       case BattleState.idle:
         playAnimation(CombatAnimation.idle);
@@ -214,7 +215,7 @@ class PlayerComponent extends PositionComponent
         break;
     }
 
-    if (next == BattleState.enemyHit || next == BattleState.playerHurt) {
+    if (next == BattleState.enemyHit || next == BattleState.playerHurt || next == BattleState.blockedRecoil) {
       _removeBlockSprite();
     }
   }

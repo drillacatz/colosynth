@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -76,7 +77,8 @@ class SaveManager implements ISaveRepository {
     });
   }
 
-  FirebaseFirestore get _db => FirebaseFirestore.instance;
+  FirebaseFirestore? get _db =>
+      Firebase.apps.isNotEmpty ? FirebaseFirestore.instance : null;
   final _guard = SecurityGuard.instance;
   SharedPreferences? _prefs;
   String? _uid;
@@ -108,10 +110,10 @@ class SaveManager implements ISaveRepository {
     return p;
   }
 
-  DocumentReference<Map<String, dynamic>> get _userDoc {
+  DocumentReference<Map<String, dynamic>>? get _userDoc {
     final uid = _uid;
-    if (uid == null) throw StateError('No user bound');
-    return _db.collection('users').doc(uid);
+    if (uid == null || uid == 'local_guest_offline') return null;
+    return _db?.collection('users').doc(uid);
   }
 
   Future<void> _wipeLocalSave() async {
@@ -234,6 +236,7 @@ class SaveManager implements ISaveRepository {
       payload['totalLogins'] = account.getTotalLogins();
       payload['longestWinStreak'] = _p.getInt(SPKeys.longestWinStreak) ?? 0;
       payload['currentWinStreak'] = _p.getInt(SPKeys.currentWinStreak) ?? 0;
+      payload['tournamentProgress'] = account.loadTournamentProgress();
 
       AccountSyncService.instance.push(payload);
       await _p.setString(SPKeys.lastDailyPush, AppDateUtils.todayKey());
@@ -246,7 +249,9 @@ class SaveManager implements ISaveRepository {
     if (_uid == null || _uid == 'local_guest_offline') return;
     await _cloudMutex.protect(() async {
       try {
-        final snap = await _userDoc.get().timeout(const Duration(seconds: 4));
+        final doc = _userDoc;
+        if (doc == null) return;
+        final snap = await doc.get().timeout(const Duration(seconds: 4));
         if (!snap.exists) {
           await _bootstrapCloudDocument();
           return;
@@ -281,11 +286,13 @@ class SaveManager implements ISaveRepository {
 
   Future<void> _bootstrapCloudDocument() async {
     if (_uid == null) return;
+    final doc = _userDoc;
+    if (doc == null) return;
     try {
       final localInk = account.loadInk();
       final localPaint = account.loadPaint();
 
-      await _userDoc.set({
+      await doc.set({
         'uid': _uid,
         'isGuest': false,
         'ink': localInk,

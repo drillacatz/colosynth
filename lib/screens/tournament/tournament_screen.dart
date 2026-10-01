@@ -89,13 +89,19 @@ class _TournamentHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 14),
-          const Text(
-            'TOURNAMENT',
-            style: TextStyle(
-              fontFamily: 'Bangers',
-              fontSize: 28,
-              letterSpacing: 5,
-              color: _kInk,
+          const Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'TOURNAMENT',
+                style: TextStyle(
+                  fontFamily: 'Bangers',
+                  fontSize: 28,
+                  letterSpacing: 5,
+                  color: _kInk,
+                ),
+              ),
             ),
           ),
         ],
@@ -384,7 +390,14 @@ class _TournamentLayoutState extends ConsumerState<_TournamentLayout>
             height: sz,
             child: Opacity(
               opacity: opacity,
-              child: e.widget,
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: SizedBox(
+                  width: mainSize,
+                  height: mainSize,
+                  child: e.widget,
+                ),
+              ),
             ),
           ),
         );
@@ -609,73 +622,79 @@ class _TutorialPane extends StatelessWidget {
     const accent = AppColors.ink;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'TUTORIAL',
-            style: TextStyle(
-              fontFamily: 'Bangers',
-              fontSize: 26,
-              letterSpacing: 4,
-              color: accent,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'BASIC TRAINING',
-            style: TextStyle(
-              fontSize: 11,
-              letterSpacing: 1.5,
-              color: Color(0xFF888888),
-            ),
-          ),
-          if (done) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                    color: const Color(0xFF4CAF50).withValues(alpha: 0.35),
-                    width: 1),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'TUTORIAL',
+              style: TextStyle(
+                fontFamily: 'Bangers',
+                fontSize: 26,
+                letterSpacing: 4,
+                color: accent,
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'BASIC TRAINING',
+              style: TextStyle(
+                fontSize: 11,
+                letterSpacing: 1.5,
+                color: Color(0xFF888888),
+              ),
+            ),
+            if (done) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CAF50).withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                      color: const Color(0xFF4CAF50).withValues(alpha: 0.35),
+                      width: 1),
+                ),
+                child: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.school, size: 12, color: Color(0xFF4CAF50)),
+                      SizedBox(width: 5),
+                      Text(
+                        'TUTORIAL COMPLETED',
+                        style: TextStyle(
+                          fontFamily: 'Bangers',
+                          fontSize: 10,
+                          letterSpacing: 2,
+                          color: Color(0xFF4CAF50),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ).animate(delay: 120.ms).fadeIn(duration: 300.ms),
+            ] else ...[
+              const SizedBox(height: 10),
+              const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.school, size: 12, color: Color(0xFF4CAF50)),
+                  Icon(Icons.info_outline, size: 13, color: accent),
                   SizedBox(width: 5),
-                  Text(
-                    'TUTORIAL COMPLETED',
-                    style: TextStyle(
-                      fontFamily: 'Bangers',
-                      fontSize: 10,
-                      letterSpacing: 2,
-                      color: Color(0xFF4CAF50),
+                  Flexible(
+                    child: Text(
+                      'Required to unlock Tier 1',
+                      style: TextStyle(fontSize: 11, color: accent),
                     ),
                   ),
                 ],
-              ),
-            ).animate(delay: 120.ms).fadeIn(duration: 300.ms),
-          ] else ...[
-            const SizedBox(height: 10),
-            const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.info_outline, size: 13, color: accent),
-                SizedBox(width: 5),
-                Flexible(
-                  child: Text(
-                    'Required to unlock Tier 1',
-                    style: TextStyle(fontSize: 11, color: accent),
-                  ),
-                ),
-              ],
-            ).animate(delay: 100.ms).fadeIn(duration: 200.ms),
+              ).animate(delay: 100.ms).fadeIn(duration: 200.ms),
+            ],
           ],
-          const Spacer(),
-        ],
+        ),
       ),
     );
   }
@@ -708,94 +727,100 @@ class _TournamentPane extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t.name,
-            style: const TextStyle(
-              fontFamily: 'Bangers',
-              fontSize: 26,
-              letterSpacing: 4,
-              color: inkColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            t.recLv,
-            style: const TextStyle(
-              fontSize: 11,
-              letterSpacing: 1.5,
-              color: subColor,
-            ),
-          ),
-          if (isTutorialLocked) ...[
-            const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.school_outlined,
-                    size: 13, color: Color(0xFF00E5FF)),
-                const SizedBox(width: 5),
-                Flexible(
-                  child: Text(
-                    'Complete the tutorial to unlock',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: const Color(0xFF00E5FF).withValues(alpha: 0.8),
-                    ),
-                  ),
-                ),
-              ],
-            ).animate(delay: 100.ms).fadeIn(duration: 200.ms),
-          ] else if (!unlocked) ...[
-            const SizedBox(height: 10),
-            const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.lock_outline, size: 13, color: subColor),
-                SizedBox(width: 5),
-                Flexible(
-                  child: Text(
-                    'Complete previous tier to unlock',
-                    style: TextStyle(fontSize: 11, color: subColor),
-                  ),
-                ),
-              ],
-            ).animate(delay: 100.ms).fadeIn(duration: 200.ms),
-          ],
-          if (allChestClaimed) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                    color: const Color(0xFF4CAF50).withValues(alpha: 0.35),
-                    width: 1),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              t.name,
+              style: const TextStyle(
+                fontFamily: 'Bangers',
+                fontSize: 26,
+                letterSpacing: 4,
+                color: inkColor,
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              t.recLv,
+              style: const TextStyle(
+                fontSize: 11,
+                letterSpacing: 1.5,
+                color: subColor,
+              ),
+            ),
+            if (isTutorialLocked) ...[
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.emoji_events_outlined,
-                      size: 12, color: Color(0xFF4CAF50)),
-                  SizedBox(width: 5),
-                  Text(
-                    'ALL REWARDS CLAIMED',
-                    style: TextStyle(
-                      fontFamily: 'Bangers',
-                      fontSize: 10,
-                      letterSpacing: 2,
-                      color: Color(0xFF4CAF50),
+                  const Icon(Icons.school_outlined,
+                      size: 13, color: Color(0xFF00E5FF)),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      'Complete the tutorial to unlock',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: const Color(0xFF00E5FF).withValues(alpha: 0.8),
+                      ),
                     ),
                   ),
                 ],
-              ),
-            ).animate(delay: 140.ms).fadeIn(duration: 300.ms),
+              ).animate(delay: 100.ms).fadeIn(duration: 200.ms),
+            ] else if (!unlocked) ...[
+              const SizedBox(height: 10),
+              const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.lock_outline, size: 13, color: subColor),
+                  SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      'Complete previous tier to unlock',
+                      style: TextStyle(fontSize: 11, color: subColor),
+                    ),
+                  ),
+                ],
+              ).animate(delay: 100.ms).fadeIn(duration: 200.ms),
+            ],
+            if (allChestClaimed) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CAF50).withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                      color: const Color(0xFF4CAF50).withValues(alpha: 0.35),
+                      width: 1),
+                ),
+                child: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.emoji_events_outlined,
+                          size: 12, color: Color(0xFF4CAF50)),
+                      SizedBox(width: 5),
+                      Text(
+                        'ALL REWARDS CLAIMED',
+                        style: TextStyle(
+                          fontFamily: 'Bangers',
+                          fontSize: 10,
+                          letterSpacing: 2,
+                          color: Color(0xFF4CAF50),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ).animate(delay: 140.ms).fadeIn(duration: 300.ms),
+            ],
           ],
-          const Spacer(),
-        ],
+        ),
       ),
     );
   }
@@ -822,62 +847,70 @@ class _ExtremePane extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            slot.enemyName,
-            style: const TextStyle(
-              fontFamily: 'Bangers',
-              fontSize: 26,
-              letterSpacing: 4,
-              color: Color(0xFF1A1A1A),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              slot.enemyName,
+              style: const TextStyle(
+                fontFamily: 'Bangers',
+                fontSize: 26,
+                letterSpacing: 4,
+                color: Color(0xFF1A1A1A),
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'EXTREME',
-            style: TextStyle(
-              fontFamily: 'Bangers',
-              fontSize: 11,
-              letterSpacing: 1.5,
-              color: red,
+            const SizedBox(height: 4),
+            const Text(
+              'EXTREME',
+              style: TextStyle(
+                fontFamily: 'Bangers',
+                fontSize: 11,
+                letterSpacing: 1.5,
+                color: red,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          if (!unlocked)
-            const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.lock_outline, size: 13, color: subColor),
-                SizedBox(width: 5),
-                Flexible(
-                  child: Text(
-                    'Complete all tiers to unlock',
-                    style: TextStyle(fontSize: 11, color: subColor),
+            const SizedBox(height: 4),
+            if (!unlocked)
+              const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.lock_outline, size: 13, color: subColor),
+                  SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      'Complete all tiers to unlock',
+                      style: TextStyle(fontSize: 11, color: subColor),
+                    ),
                   ),
+                ],
+              ).animate(delay: 100.ms).fadeIn(duration: 200.ms)
+            else if (completed)
+              const FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle_outline,
+                        size: 13, color: Color(0xFF4CAF50)),
+                    SizedBox(width: 4),
+                    Text(
+                      'CONQUERED',
+                      style: TextStyle(
+                        fontFamily: 'Bangers',
+                        fontSize: 11,
+                        letterSpacing: 2,
+                        color: Color(0xFF4CAF50),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ).animate(delay: 100.ms).fadeIn(duration: 200.ms)
-          else if (completed)
-            const Row(
-              children: [
-                Icon(Icons.check_circle_outline,
-                    size: 13, color: Color(0xFF4CAF50)),
-                SizedBox(width: 4),
-                Text(
-                  'CONQUERED',
-                  style: TextStyle(
-                    fontFamily: 'Bangers',
-                    fontSize: 11,
-                    letterSpacing: 2,
-                    color: Color(0xFF4CAF50),
-                  ),
-                ),
-              ],
-            ).animate(delay: 100.ms).fadeIn(duration: 200.ms),
-          const Spacer(),
-        ],
+              ).animate(delay: 100.ms).fadeIn(duration: 200.ms),
+          ],
+        ),
       ),
     );
   }

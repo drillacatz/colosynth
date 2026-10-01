@@ -647,7 +647,9 @@ class _EndlessResultOverlayState extends ConsumerState<_EndlessResultOverlay> {
       body: Center(
         child: Container(
           width: MediaQuery.sizeOf(context).width * 0.85,
-          padding: const EdgeInsets.all(24),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -660,9 +662,14 @@ class _EndlessResultOverlayState extends ConsumerState<_EndlessResultOverlay> {
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
 
               Icon(
                 widget.isVictory ? Icons.emoji_events : Icons.heart_broken_rounded,
@@ -736,13 +743,16 @@ class _EndlessResultOverlayState extends ConsumerState<_EndlessResultOverlay> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _RewardBadge(icon: Icons.currency_bitcoin, label: '+$displayedInk INK', color: Colors.blue),
-                    _RewardBadge(icon: Icons.brush, label: '+$displayedPaint PAINT', color: Colors.purple),
-                    _RewardBadge(icon: Icons.military_tech, label: '+$displayedXp XP', color: Colors.orange),
-                  ],
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _RewardBadge(icon: Icons.currency_bitcoin, label: '+$displayedInk INK', color: Colors.blue),
+                      _RewardBadge(icon: Icons.brush, label: '+$displayedPaint PAINT', color: Colors.purple),
+                      _RewardBadge(icon: Icons.military_tech, label: '+$displayedXp XP', color: Colors.orange),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
                 const Divider(color: Color(0xFFEEEEEE), thickness: 1.5),
@@ -851,7 +861,9 @@ class _EndlessResultOverlayState extends ConsumerState<_EndlessResultOverlay> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }
 

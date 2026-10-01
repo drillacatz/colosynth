@@ -445,7 +445,7 @@ class _SurroundCardCarouselState extends State<_SurroundCardCarousel>
 
         final cardWidth = math.min(W * 0.52, 210.0);
         final cardHeight = math.min(H * 0.90, 310.0);
-        final stepX = cardWidth * 0.58;
+        final stepX = cardWidth * 0.95;
 
         final cardEntries = <_SurroundCardEntry>[];
         for (int i = 0; i < total; i++) {
@@ -566,13 +566,13 @@ class _SurroundCharacterCard extends StatelessWidget {
     final isCenter = absD < 0.45;
     final has3dModel = CharacterModelRegistry.hasModel(character.id);
 
-    // 3D perspective transformation:
+    // 3D perspective transformation (vigorous/aggressive trapezoid edge inequality):
     // delta > 0 => card to the right => right edge LENGTHENS!
     // delta < 0 => card to the left  => left edge LENGTHENS!
     // delta = 0 => center card       => flat normal rectangle!
-    final angle = (delta * 0.28).clamp(-0.62, 0.62);
+    final angle = (delta * 0.45).clamp(-0.75, 0.75);
     final transform = Matrix4.identity()
-      ..setEntry(3, 2, 0.0014) // perspective
+      ..setEntry(3, 2, 0.0028) // vigorous perspective foreshortening
       ..rotateY(angle);
 
     final depthScale = (1.0 - absD * 0.04).clamp(0.85, 1.0);

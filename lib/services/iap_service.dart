@@ -28,7 +28,16 @@ class IapService {
   IapService._();
   static final IapService instance = IapService._();
 
-  static final _apiKey = AppConfig.revenueCatGoogleApiKey;
+  static String get _apiKey {
+    if (defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS) {
+      return AppConfig.revenueCatAppleApiKey.isNotEmpty
+          ? AppConfig.revenueCatAppleApiKey
+          : AppConfig.revenueCatGoogleApiKey;
+    }
+    return AppConfig.revenueCatGoogleApiKey;
+  }
+
   static const _entitlementAdFree = 'ad_free';
 
   final Map<String, StoreProduct> _products = {};
@@ -44,11 +53,22 @@ class IapService {
 
   bool get adFreeActive => _adFreeActive;
 
+  bool get isPlatformSupported =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS);
+
   List<String> get _allProductIds => [
         ...StoreData.inkBundles.map((b) => b.productId),
         ...StoreData.paintBundles.map((b) => b.productId),
+        ...StoreData.comboBundles.map((b) => b.productId),
+        StoreData.starterBundle.productId,
         StoreData.adFreeBundle.productId,
+        StoreData.adFreeDeluxeBundle.productId,
       ];
+
+  List<String> get allProductIds => List.unmodifiable(_allProductIds);
 
   Future<void> init() {
     if (_initialized) return Future.value();
@@ -58,19 +78,23 @@ class IapService {
   }
 
   Future<void> _doInit() async {
-    if (_apiKey.isEmpty || _apiKey.startsWith('YOUR_')) {
-      _log('REVENUECAT_GOOGLE_API_KEY not set or placeholder — skipping.');
+    if (!isPlatformSupported) {
+      _log('RevenueCat native purchases not supported on $defaultTargetPlatform — running in fallback mode.');
+      return;
+    }
+
+    final key = _apiKey;
+    if (key.isEmpty || key.startsWith('YOUR_')) {
+      _log('RevenueCat API key not set or placeholder — skipping.');
       return;
     }
     try {
       await Purchases.setLogLevel(
         kDebugMode ? LogLevel.debug : LogLevel.error,
       );
-      await Purchases.configure(PurchasesConfiguration(_apiKey));
-
+      await Purchases.configure(PurchasesConfiguration(key));
 
       _initialized = true;
-
 
       Purchases.addCustomerInfoUpdateListener((customerInfo) {
         _syncAdFreeStatusWithInfo(customerInfo);
@@ -93,7 +117,20 @@ class IapService {
   }
 
   Future<void> _doLoadProducts() async {
+    if (!isPlatformSupported || !_initialized) return;
     try {
+      try {
+        final offerings = await Purchases.getOfferings();
+        final current = offerings.current;
+        if (current != null) {
+          for (final pkg in current.availablePackages) {
+            _products[pkg.storeProduct.identifier] = pkg.storeProduct;
+          }
+        }
+      } catch (e) {
+        _log('getOfferings notice (direct products will still load): $e');
+      }
+
       final ids = _allProductIds;
       final fetched = await Purchases.getProducts(ids);
       for (final p in fetched) {
@@ -117,6 +154,7 @@ class IapService {
   }
 
   Future<void> _syncAdFreeStatus() async {
+    if (!isPlatformSupported || !_initialized) return;
     try {
       final info = await Purchases.getCustomerInfo();
       _syncAdFreeStatusWithInfo(info);
@@ -124,8 +162,10 @@ class IapService {
   }
 
   Future<void> logIn(String uid) async {
+    if (!isPlatformSupported) return;
     try {
       await init();
+      if (!_initialized) return;
       await Purchases.logIn(uid);
       await _syncAdFreeStatus();
     } catch (e) {
@@ -134,8 +174,10 @@ class IapService {
   }
 
   Future<void> logOut() async {
+    if (!isPlatformSupported) return;
     try {
       await init();
+      if (!_initialized) return;
       await Purchases.logOut();
       _adFreeActive = false;
     } catch (e) {
@@ -144,6 +186,10 @@ class IapService {
   }
 
   Future<IapResult> purchaseProduct(String productId) async {
+    if (!isPlatformSupported) {
+      return const IapError('In-app purchases are only available on mobile devices.');
+    }
+
     if (!_initialized) return const IapError('Store not ready. Try again.');
 
     if (_purchaseInProgress) {
@@ -168,6 +214,13 @@ class IapService {
       final code = PurchasesErrorHelper.getErrorCode(e);
       if (code == PurchasesErrorCode.purchaseCancelledError) {
         return const IapCancelled();
+      } else if (code == PurchasesErrorCode.paymentPendingError) {
+        return const IapError('Payment is pending approval. You will receive items once confirmed.');
+      } else if (code == PurchasesErrorCode.productAlreadyPurchasedError) {
+        await _syncAdFreeStatus();
+        return const IapError('Product already purchased. Please restore purchases if needed.');
+      } else if (code == PurchasesErrorCode.networkError) {
+        return const IapError('Network error. Please check your internet connection.');
       }
       return IapError(e.message ?? 'Purchase failed.');
     } catch (e) {
@@ -178,9 +231,15 @@ class IapService {
   }
 
   Future<void> restorePurchases() async {
+    if (!isPlatformSupported) return;
+    if (!_initialized) await init();
+    if (!_initialized) return;
     try {
-      await Purchases.restorePurchases();
-      await _syncAdFreeStatus();
+      final info = await Purchases.restorePurchases();
+      _syncAdFreeStatusWithInfo(info);
+      if (!_customerInfoStreamController.isClosed) {
+        _customerInfoStreamController.add(info);
+      }
     } catch (e) {
       _log('restorePurchases error: $e');
       rethrow;

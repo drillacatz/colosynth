@@ -51,9 +51,10 @@ class TournamentBattleFlow {
             isExtreme: slot.isExtreme,
             skipLightningEntrance: false,
           ),
-          transitionDuration: const Duration(milliseconds: 200),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
           transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-              FadeTransition(opacity: animation, child: child),
+              child,
         ),
       );
 

@@ -12,6 +12,7 @@ import 'package:colosynth/providers/tournament_provider.dart';
 import 'package:colosynth/screens/theme/tokens.dart';
 import 'package:colosynth/screens/character/character_misc.dart';
 import 'package:colosynth/screens/overlays/locked_feature_overlay.dart';
+import 'package:colosynth/screens/synth/synth_card_showcase_overlay.dart';
 import 'package:colosynth/database/synth/synth_definition.dart';
 import 'package:colosynth/database/synth/synth_instance.dart';
 
@@ -448,6 +449,43 @@ class _VerticalSynthCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () {
+                    SynthCardShowcaseOverlay.show(
+                      context,
+                      definition: definition,
+                      level: level,
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.comicYellow,
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(color: AppColors.ink, width: 1.2),
+                      boxShadow: const [
+                        BoxShadow(color: AppColors.ink, offset: Offset(1, 1)),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.style, size: 10, color: AppColors.ink),
+                        SizedBox(width: 2),
+                        Text(
+                          '3D',
+                          style: TextStyle(
+                            fontFamily: 'Bangers',
+                            fontSize: 8,
+                            color: AppColors.ink,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
                 const Icon(
                   Icons.swap_horiz,
                   size: 16,
@@ -714,6 +752,32 @@ class _SynthSelectionSheet extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () {
+                                SynthCardShowcaseOverlay.show(
+                                  context,
+                                  definition: def,
+                                  level: inst.level,
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.comicYellow,
+                                  border: Border.all(color: AppColors.ink, width: 1.5),
+                                  borderRadius: BorderRadius.circular(4),
+                                  boxShadow: const [
+                                    BoxShadow(color: AppColors.ink, offset: Offset(1, 1)),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.style,
+                                  size: 15,
+                                  color: AppColors.ink,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
                             if (isCurrentSlot)
                               GestureDetector(
                                 onTap: () async {

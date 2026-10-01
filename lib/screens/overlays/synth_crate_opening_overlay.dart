@@ -8,10 +8,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:colosynth/database/synth/synth_definition.dart';
 import 'package:colosynth/growth/synth/synth_database.dart';
 import 'package:colosynth/providers/synth_provider.dart';
+import 'package:colosynth/screens/synth/synth_card_showcase_overlay.dart';
 import 'package:colosynth/screens/theme/tokens.dart';
 import 'package:colosynth/services/audio_service.dart';
 import 'package:colosynth/game_settings.dart';
 import 'package:colosynth/game/logic/direction.dart';
+import 'package:colosynth/widgets/comic/procedural_3d_chest.dart';
 
 enum SynthRarity {
   common('COMMON', Color(0xFFFFFFFF), Color(0xFFE0E0E0)),
@@ -204,7 +206,7 @@ class _SynthCrateOpeningOverlayState
       _isOpening = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 400), () {
+    Future.delayed(const Duration(milliseconds: 650), () {
       if (!mounted) return;
       AudioService.instance.playSfx(SfxEvent.reward);
       setState(() {
@@ -257,64 +259,98 @@ class _SynthCrateOpeningOverlayState
             ),
 
           SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                _buildHeader(),
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        _buildHeader(),
 
-                const Spacer(),
+                        const Spacer(),
 
-                Center(
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      if (_particleController.isAnimating)
-                        CustomPaint(
-                          painter: _WoodParticlePainter(
-                            particles: _particles,
-                            progress: _particleController.value,
+                        Center(
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              if (_particleController.isAnimating)
+                                CustomPaint(
+                                  painter: _WoodParticlePainter(
+                                    particles: _particles,
+                                    progress: _particleController.value,
+                                  ),
+                                ),
+
+                              // 1. Procedural 3D Perspective Chest
+                              AnimatedOpacity(
+                                duration: const Duration(milliseconds: 350),
+                                opacity: _isOpened ? 0.35 : 1.0,
+                                child: Transform.translate(
+                                  offset: Offset(0, _isOpened ? 60 : 0),
+                                  child: GestureDetector(
+                                    onTap: _onChestTap,
+                                    child: AnimatedBuilder(
+                                      animation: _shakeController,
+                                      builder: (ctx, child) {
+                                        final shake = math.sin(
+                                                _shakeController.value * math.pi * 6) *
+                                            8.0 *
+                                            (1.0 - _shakeController.value);
+                                        return Transform.translate(
+                                          offset: Offset(shake, 0),
+                                          child: Transform.scale(
+                                            scale: scaleFactor,
+                                            child: child,
+                                          ),
+                                        );
+                                      },
+                                      child: Procedural3dChest(
+                                        tapsDone: _tapsDone,
+                                        rarity: _currentRarity,
+                                        isOpening: _isOpening,
+                                        isOpened: _isOpened,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // 2. Revealed Synth Card (levitates smoothly up from the opened 3D chest)
+                              if (_isOpened)
+                                _buildRevealedSynthCard()
+                                    .animate()
+                                    .fadeIn(duration: 400.ms)
+                                    .slideY(
+                                      begin: 0.35,
+                                      end: 0.0,
+                                      duration: 500.ms,
+                                      curve: Curves.easeOutBack,
+                                    )
+                                    .scale(
+                                      begin: const Offset(0.75, 0.75),
+                                      end: const Offset(1.0, 1.0),
+                                      duration: 500.ms,
+                                      curve: Curves.easeOutBack,
+                                    ),
+                            ],
                           ),
                         ),
 
-                      if (!_isOpened)
-                        GestureDetector(
-                          onTap: _onChestTap,
-                          child: AnimatedBuilder(
-                            animation: _shakeController,
-                            builder: (ctx, child) {
-                              final shake = math.sin(
-                                      _shakeController.value * math.pi * 6) *
-                                  8.0 *
-                                  (1.0 - _shakeController.value);
-                              return Transform.translate(
-                                offset: Offset(shake, 0),
-                                child: Transform.scale(
-                                  scale: scaleFactor,
-                                  child: child,
-                                ),
-                              );
-                            },
-                            child: _ChestBoxGraphic(
-                              tapsDone: _tapsDone,
-                              rarity: _currentRarity,
-                              isOpening: _isOpening,
-                            ),
-                          ),
-                        )
-                      else
-                        _buildRevealedSynthCard(),
-                    ],
+                        const Spacer(),
+
+                        if (!_isOpened) _buildChancesIndicator(),
+
+                        if (_isOpened) _buildClaimButton(),
+
+                        const SizedBox(height: 32),
+                      ],
+                    ),
                   ),
                 ),
-
-                const Spacer(),
-
-                if (!_isOpened) _buildChancesIndicator(),
-
-                if (_isOpened) _buildClaimButton(),
-
-                const SizedBox(height: 32),
-              ],
+              ),
             ),
           ),
         ],
@@ -414,7 +450,15 @@ class _SynthCrateOpeningOverlayState
     final def = _awardedDefinition;
     if (def == null) return const SizedBox.shrink();
 
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        SynthCardShowcaseOverlay.show(
+          context,
+          definition: def,
+          level: 1,
+        );
+      },
+      child: Container(
       width: 290,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -540,9 +584,37 @@ class _SynthCrateOpeningOverlayState
               _buildStatTile('CHARGE', '+${def.activeSkillChargeBonus}%'),
             ],
           ),
+
+          const SizedBox(height: 14),
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.style, size: 13, color: AppColors.comicYellow),
+                SizedBox(width: 5),
+                Text(
+                  'TAP TO VIEW 3D CARD',
+                  style: TextStyle(
+                    fontFamily: 'Bangers',
+                    fontSize: 11,
+                    letterSpacing: 1.2,
+                    color: AppColors.comicYellow,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   String _dirArrow(AttackDirection dir) {
@@ -620,134 +692,6 @@ class _SynthCrateOpeningOverlayState
   }
 }
 
-
-class _ChestBoxGraphic extends StatelessWidget {
-  const _ChestBoxGraphic({
-    required this.tapsDone,
-    required this.rarity,
-    required this.isOpening,
-  });
-
-  final int tapsDone;
-  final SynthRarity rarity;
-  final bool isOpening;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 220,
-      height: 200,
-      decoration: BoxDecoration(
-        color: const Color(0xFF4E342E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: rarity.color, width: 4),
-        boxShadow: [
-          BoxShadow(
-            color: rarity.color.withValues(alpha: 0.5),
-            blurRadius: 20 + (tapsDone * 8.0),
-            spreadRadius: 2 + (tapsDone * 2.0),
-          ),
-        ],
-      ),
-      child: CustomPaint(
-        painter: _ChestPainter(
-          tapsDone: tapsDone,
-          rarityColor: rarity.color,
-          isOpening: isOpening,
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.lock,
-                size: 48,
-                color: rarity.color,
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'TAP TO BREAK',
-                  style: TextStyle(
-                    fontFamily: 'Bangers',
-                    fontSize: 14,
-                    color: rarity.color,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChestPainter extends CustomPainter {
-  final int tapsDone;
-  final Color rarityColor;
-  final bool isOpening;
-
-  _ChestPainter({
-    required this.tapsDone,
-    required this.rarityColor,
-    required this.isOpening,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.25)
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-
-    canvas.drawLine(Offset(0, size.height * 0.33), Offset(size.width, size.height * 0.33), paint);
-    canvas.drawLine(Offset(0, size.height * 0.66), Offset(size.width, size.height * 0.66), paint);
-
-    final bandPaint = Paint()
-      ..color = rarityColor.withValues(alpha: 0.8)
-      ..strokeWidth = 6
-      ..style = PaintingStyle.stroke;
-
-    canvas.drawRect(Rect.fromLTWH(8, 8, size.width - 16, size.height - 16), bandPaint);
-
-    if (tapsDone > 0) {
-      final crackPaint = Paint()
-        ..color = rarityColor
-        ..strokeWidth = 2.5
-        ..style = PaintingStyle.stroke;
-
-      final path = Path();
-      path.moveTo(size.width * 0.2, 8);
-      path.lineTo(size.width * 0.35, size.height * 0.3);
-      path.lineTo(size.width * 0.25, size.height * 0.5);
-
-      if (tapsDone > 1) {
-        path.moveTo(size.width * 0.8, 8);
-        path.lineTo(size.width * 0.65, size.height * 0.4);
-        path.lineTo(size.width * 0.75, size.height * 0.7);
-      }
-
-      if (tapsDone > 2) {
-        path.moveTo(size.width * 0.5, size.height - 8);
-        path.lineTo(size.width * 0.4, size.height * 0.6);
-        path.lineTo(size.width * 0.6, size.height * 0.3);
-      }
-
-      canvas.drawPath(path, crackPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ChestPainter old) =>
-      old.tapsDone != tapsDone || old.rarityColor != rarityColor;
-}
 
 
 class _WoodParticle {

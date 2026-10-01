@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:colosynth/game_data/level_data.dart';
+import 'package:colosynth/screens/theme/tokens.dart';
 import 'package:colosynth/services/sprite_repository.dart';
 import 'package:colosynth/widgets/common/animated_tap_button.dart';
 
@@ -21,6 +22,29 @@ class ArenaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardImg = Image.asset(
+      SpriteRepository.tournamentTier(tournament.tier),
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(
+        color: style == ArenaStyle.darkComic
+            ? AppColors.ink
+            : AppColors.paperWhite,
+        child: Center(
+          child: Text(
+            'TIER ${tournament.tier}',
+            style: TextStyle(
+              fontFamily: 'Bangers',
+              fontSize: 28,
+              letterSpacing: 2,
+              color: style == ArenaStyle.darkComic
+                  ? Colors.white
+                  : AppColors.ink,
+            ),
+          ),
+        ),
+      ),
+    );
+
     return AnimatedTapButton(
       onTap: onTap,
       scaleDown: 0.95,
@@ -30,17 +54,11 @@ class ArenaCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             unlocked
-                ? Image.asset(
-                    SpriteRepository.tournamentTier(tournament.tier),
-                    fit: BoxFit.cover,
-                  )
+                ? cardImg
                 : ColorFiltered(
                     colorFilter: const ColorFilter.mode(
                         Colors.grey, BlendMode.saturation),
-                    child: Image.asset(
-                      SpriteRepository.tournamentTier(tournament.tier),
-                      fit: BoxFit.cover,
-                    ),
+                    child: cardImg,
                   ),
             if (!unlocked)
               Container(
@@ -76,6 +94,25 @@ class ExtremeArenaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardImg = Image.asset(
+      SpriteRepository.extremeTournament,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(
+        color: AppColors.ink,
+        child: const Center(
+          child: Text(
+            'EXTREME',
+            style: TextStyle(
+              fontFamily: 'Bangers',
+              fontSize: 28,
+              letterSpacing: 2,
+              color: Color(0xFFFF003C),
+            ),
+          ),
+        ),
+      ),
+    );
+
     return AnimatedTapButton(
       onTap: onTap,
       scaleDown: 0.95,
@@ -85,17 +122,11 @@ class ExtremeArenaCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             unlocked
-                ? Image.asset(
-                    SpriteRepository.extremeTournament,
-                    fit: BoxFit.cover,
-                  )
+                ? cardImg
                 : ColorFiltered(
                     colorFilter: const ColorFilter.mode(
                         Colors.grey, BlendMode.saturation),
-                    child: Image.asset(
-                      SpriteRepository.extremeTournament,
-                      fit: BoxFit.cover,
-                    ),
+                    child: cardImg,
                   ),
             if (!unlocked)
               Container(
@@ -144,31 +175,37 @@ class TutorialCard extends StatelessWidget {
               color: Colors.black.withValues(alpha: 0.25),
             ),
             Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    done ? Icons.school : Icons.menu_book_outlined,
-                    color: Colors.white.withValues(alpha: 0.95),
-                    size: 36,
-                    shadows: const [
-                      Shadow(color: Colors.black, offset: Offset(2, 2), blurRadius: 4),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        done ? Icons.school : Icons.menu_book_outlined,
+                        color: Colors.white.withValues(alpha: 0.95),
+                        size: 36,
+                        shadows: const [
+                          Shadow(color: Colors.black, offset: Offset(2, 2), blurRadius: 4),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'TUTORIAL',
+                        style: TextStyle(
+                          fontFamily: 'Bangers',
+                          fontSize: 16,
+                          letterSpacing: 3,
+                          color: Colors.white.withValues(alpha: 0.95),
+                          shadows: const [
+                            Shadow(color: Colors.black, offset: Offset(2, 2), blurRadius: 4),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'TUTORIAL',
-                    style: TextStyle(
-                      fontFamily: 'Bangers',
-                      fontSize: 16,
-                      letterSpacing: 3,
-                      color: Colors.white.withValues(alpha: 0.95),
-                      shadows: const [
-                        Shadow(color: Colors.black, offset: Offset(2, 2), blurRadius: 4),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
             if (done)

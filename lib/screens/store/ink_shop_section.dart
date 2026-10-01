@@ -83,29 +83,43 @@ class InkBundleGridCard extends ConsumerWidget {
 }
 
 class AdFreeShopCard extends ConsumerWidget {
-  const AdFreeShopCard({super.key, required this.prices});
+  const AdFreeShopCard({
+    super.key,
+    required this.prices,
+    this.compact = true,
+    this.isDeluxe = false,
+  });
 
   final Map<String, String> prices;
+  final bool compact;
+  final bool isDeluxe;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bundle = StoreData.adFreeBundle;
-    final priceString = prices[bundle.productId] ?? bundle.usdFallback;
+    final basicBundle = StoreData.adFreeBundle;
+    final deluxeBundle = StoreData.adFreeDeluxeBundle;
+    final bundleId = isDeluxe ? deluxeBundle.productId : basicBundle.productId;
+    final fallback = isDeluxe ? deluxeBundle.usdFallback : basicBundle.usdFallback;
+    final label = isDeluxe ? 'AD FREE DELUXE' : 'AD FREE';
+    final priceString = prices[bundleId] ?? fallback;
     final adFreeAsync = ref.watch(adFreeProvider);
 
     final isPurchased = adFreeAsync.value ?? false;
 
     return ShopCard(
-      icon: isPurchased ? Icons.check_circle : Icons.stars_rounded,
-      mainLabel: bundle.label,
-      subLabel: isPurchased ? 'ACTIVE' : priceString,
-      highlighted: !isPurchased,
-      compact: false,
+      icon: isPurchased
+          ? Icons.check_circle
+          : (isDeluxe ? Icons.auto_awesome : Icons.stars_rounded),
+      mainLabel: label,
+      subLabel: isPurchased
+          ? 'ACTIVE'
+          : (isDeluxe ? '+88P & 8.8k INK  $priceString' : priceString),
+      highlighted: !isPurchased && isDeluxe,
+      compact: compact,
       dimmed: isPurchased,
-      accentColor: const Color(0xFFFFAB00),
-      badgeText: isPurchased ? 'ACTIVE' : 'NO ADS',
-      onTap:
-          isPurchased ? null : () => _purchase(context, ref, bundle.productId),
+      accentColor: isDeluxe ? const Color(0xFFFFD700) : const Color(0xFFFFAB00),
+      badgeText: isPurchased ? 'ACTIVE' : (isDeluxe ? 'VALUE PACK' : 'NO ADS'),
+      onTap: isPurchased ? null : () => _purchase(context, ref, bundleId),
     );
   }
 

@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:colosynth/utils/app_logger.dart';
 import 'package:colosynth/utils/date_utils.dart';
 import 'package:colosynth/services/rewarded_ad_service.dart';
+import 'package:colosynth/services/iap_service.dart';
 
 
 class BattleAdsService {
@@ -17,9 +19,9 @@ class BattleAdsService {
   int _doubleRewardCount = 0;
   String _doubleRewardDate = '';
 
-  Future<void> init() async {
+  Future<void> init([SharedPreferences? prefs]) async {
     try {
-      _prefs ??= await SharedPreferences.getInstance();
+      _prefs = prefs ?? _prefs ?? await SharedPreferences.getInstance();
       final today = AppDateUtils.todayKey();
       _doubleRewardDate = _prefs!.getString(_kDoubleRewardDateKey) ?? '';
       if (_doubleRewardDate != today) {
@@ -46,8 +48,8 @@ class BattleAdsService {
     if (_doubleRewardDate != today) {
       _doubleRewardCount = 0;
       _doubleRewardDate = today;
-      _prefs?.setString(_kDoubleRewardDateKey, today);
-      _prefs?.setInt(_kDoubleRewardCountKey, 0);
+      unawaited(_prefs?.setString(_kDoubleRewardDateKey, today));
+      unawaited(_prefs?.setInt(_kDoubleRewardCountKey, 0));
     }
   }
 
@@ -58,6 +60,14 @@ class BattleAdsService {
     VoidCallback? onDismissed,
   }) async {
     _refreshIfNewDay();
+
+    if (IapService.instance.adFreeActive) {
+      _doubleRewardCount++;
+      unawaited(_prefs?.setInt(_kDoubleRewardCountKey, _doubleRewardCount));
+      AppLogger.d('BattleAdsService', 'Double reward claimed instantly (ad-free). Count today: $_doubleRewardCount');
+      onRewarded();
+      return true;
+    }
 
     bool rewarded = false;
     final shown = await RewardedAdService.instance.showAd(

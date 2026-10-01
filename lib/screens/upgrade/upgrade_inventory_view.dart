@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:colosynth/database/synth/synth_definition.dart';
 import 'package:colosynth/providers/inventory_provider.dart';
+import 'package:colosynth/screens/synth/synth_card_showcase_overlay.dart';
+import 'package:colosynth/screens/theme/tokens.dart';
 import 'package:colosynth/screens/upgrade/upgrade_notifier.dart';
 
 class InventoryView extends ConsumerWidget {
@@ -36,14 +38,20 @@ class InventoryView extends ConsumerWidget {
               Icon(Icons.inventory_2_outlined,
                   size: 16, color: Color(0xFF1A1A1A)),
               SizedBox(width: 8),
-              Text(
-                'INVENTORY (SYNTHS & ITEMS)',
-                style: TextStyle(
-                  color: Color(0xFF1A1A1A),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 3,
-                  fontFamily: 'Bangers',
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'INVENTORY (SYNTHS & ITEMS)',
+                    style: TextStyle(
+                      color: Color(0xFF1A1A1A),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 3,
+                      fontFamily: 'Bangers',
+                    ),
+                  ),
                 ),
               ),
               SizedBox(width: 10),
@@ -244,13 +252,19 @@ class _DynamicDetailPanel extends ConsumerWidget {
           children: [
             Icon(Icons.inventory_2_outlined, size: 28, color: Colors.black38),
             SizedBox(width: 14),
-            Text(
-              'INVENTORY IS EMPTY',
-              style: TextStyle(
-                fontFamily: 'Bangers',
-                fontSize: 16,
-                color: Colors.black45,
-                letterSpacing: 1.0,
+            Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'INVENTORY IS EMPTY',
+                  style: TextStyle(
+                    fontFamily: 'Bangers',
+                    fontSize: 16,
+                    color: Colors.black45,
+                    letterSpacing: 1.0,
+                  ),
+                ),
               ),
             ),
           ],
@@ -318,13 +332,16 @@ class _DynamicDetailPanel extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        def.name.toUpperCase(),
-                        style: const TextStyle(
-                          fontFamily: 'Bangers',
-                          fontSize: 18,
-                          color: Color(0xFF1A1A1A),
-                          letterSpacing: 1.0,
+                      Flexible(
+                        child: Text(
+                          def.name.toUpperCase(),
+                          style: const TextStyle(
+                            fontFamily: 'Bangers',
+                            fontSize: 18,
+                            color: Color(0xFF1A1A1A),
+                            letterSpacing: 1.0,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -366,21 +383,61 @@ class _DynamicDetailPanel extends ConsumerWidget {
                             : Colors.grey,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        isEquipped
-                            ? 'EQUIPPED BY $charName'
-                            : 'UNASSIGNED (AVAILABLE IN CHARACTER PANEL)',
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.bold,
-                          color: isEquipped
-                              ? const Color(0xFF4CAF50)
-                              : Colors.grey.shade700,
+                      Expanded(
+                        child: Text(
+                          isEquipped
+                              ? 'EQUIPPED BY $charName'
+                              : 'UNASSIGNED (AVAILABLE IN CHARACTER PANEL)',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: isEquipped
+                                ? const Color(0xFF4CAF50)
+                                : Colors.grey.shade700,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () {
+                SynthCardShowcaseOverlay.show(
+                  context,
+                  definition: def,
+                  level: inst?.level ?? 1,
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.comicYellow,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.ink, width: 2),
+                  boxShadow: const [
+                    BoxShadow(color: AppColors.ink, offset: Offset(2, 2)),
+                  ],
+                ),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.style, size: 20, color: AppColors.ink),
+                    SizedBox(height: 2),
+                    Text(
+                      'VIEW',
+                      style: TextStyle(
+                        fontFamily: 'Bangers',
+                        fontSize: 12,
+                        letterSpacing: 1.0,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

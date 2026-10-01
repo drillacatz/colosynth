@@ -22,6 +22,7 @@ import 'package:colosynth/game/components/player_component.dart';
 import 'package:colosynth/game/logic/battle_constants.dart';
 import 'package:colosynth/game/logic/battle_engine.dart';
 import 'package:colosynth/game/logic/battle_state_machine.dart';
+import 'package:flutter/material.dart' show Color;
 import 'package:colosynth/game/logic/combat_input_handler.dart';
 import 'package:colosynth/game/logic/direction.dart';
 import 'package:colosynth/game/logic/skill_meter.dart';
@@ -30,19 +31,30 @@ import 'package:colosynth/game/logic/counter_synth_controller.dart';
 import 'package:colosynth/game/skills/skill_effect.dart';
 import 'package:colosynth/services/synth/synth_crate_service.dart';
 import 'package:colosynth/game/app_shell/battle_models.dart';
+import 'package:colosynth/database/synth/synth_definition.dart';
+import 'package:colosynth/game_data/character_database.dart';
+import 'package:colosynth/game/components/skill_vfx_component.dart';
+import 'package:colosynth/services/sprite_repository.dart';
+import 'package:colosynth/services/audio_service.dart';
+import 'package:colosynth/game_settings.dart' show SfxEvent;
 import 'package:colosynth/utils/component_pool.dart';
 
 final battleGameProvider =
     Provider.family.autoDispose<BattleFlameGame, BattleGameParams>(
   (ref, params) {
-    final stats = ref.watch(battleStatsProvider).value;
+    final stats = ref.read(battleStatsProvider).value;
     if (stats == null) {
       throw StateError('BattleStats not loaded yet');
     }
+    final equippedCharId = ref.read(equippedCharacterIdProvider);
+    final equippedDefs = SynthCrateService.instance.loadEquippedDefinitions(
+      equippedCharId,
+    );
 
     final game = BattleFlameGame(
-      ref: ref,
       playerStats: stats,
+      characterId: equippedCharId,
+      equippedSynths: equippedDefs,
       aiProfile: params.aiProfile,
       tier: params.tier,
       slotId: params.slotId,
@@ -62,10 +74,14 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
   final ValueNotifier<double> enemyHpFraction = ValueNotifier(1.0);
   @override
   final ValueNotifier<int> damageEventNotifier = ValueNotifier(0);
+  @override
+  final ValueNotifier<SkillCutInData?> skillCutInNotifier = ValueNotifier(null);
+  bool _isTimeFrozen = false;
 
   @override
   final BattleStats playerStats;
-  final Ref ref;
+  final String characterId;
+  final List<SynthDefinition> equippedSynths;
   final AiProfile aiProfile;
   final int tier;
   final String slotId;
@@ -92,6 +108,9 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
   double _timeScale = 1.0;
   AttackDirection? _bufferedSlash;
   double _bufferTimer = 0.0;
+  int _idleAttackSpamCount = 0;
+  double _idleSpamDecayTimer = 0.0;
+  bool _isAntiSpamRecoil = false;
 
   static const double _minIdleSecs = BattleTimings.minIdleSecs;
   static const double _maxIdleSecs = BattleTimings.maxIdleSecs;
@@ -102,13 +121,15 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
   static const double _dodgeStateDuration = BattleTimings.dodgeStateDuration;
   static const double _enemyHitLeadIn = BattleTimings.enemyHitLeadIn;
   static const double _skillDuration = BattleTimings.skillDuration;
+  static const double _blockedRecoilDuration = BattleTimings.blockedRecoilDuration;
   static const double _kMaxBufferTime = InputConstants.maxBufferTime;
 
   final math.Random _rng = math.Random();
 
   BattleFlameGame({
-    required this.ref,
     required this.playerStats,
+    required this.characterId,
+    required this.equippedSynths,
     required this.aiProfile,
     required this.tier,
     required this.slotId,
@@ -132,6 +153,15 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
   @override
   BattleStatsTracker get stats => _stats;
 
+  @visibleForTesting
+  int get idleAttackSpamCount => _idleAttackSpamCount;
+
+  @visibleForTesting
+  set idleAttackSpamCount(int value) => _idleAttackSpamCount = value;
+
+  @visibleForTesting
+  bool get isAntiSpamRecoil => _isAntiSpamRecoil;
+
   @override
   Future<void> onLoad() async {
     PlayerStatsTracker.instance.startBattle();
@@ -142,17 +172,18 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
     _activeSkill = ActiveSkillMeter();
     _stats = BattleStatsTracker();
 
-    final equippedCharId = ref.read(equippedCharacterIdProvider);
-    _enemyComponent = EnemyComponent(profile: aiProfile, tournamentTier: tier);
+    final isBossSlot = slotId.contains('boss') || slotId.contains('extreme');
+    _enemyComponent = EnemyComponent(
+      profile: aiProfile,
+      tournamentTier: tier,
+      isBoss: isBossSlot,
+    );
     _playerComponent = PlayerComponent(
       playerStats: playerStats,
-      characterId: equippedCharId,
+      characterId: characterId,
     );
 
-    final equippedDefs = SynthCrateService.instance.loadEquippedDefinitions(
-      equippedCharId,
-    );
-    _counterSynth = CounterSynthController(equippedDefinitions: equippedDefs);
+    _counterSynth = CounterSynthController(equippedDefinitions: equippedSynths);
 
     _engine = BattleEngine(
       player: _playerComponent,
@@ -179,6 +210,7 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
 
   @override
   void update(double dt) {
+    if (_isTimeFrozen) return;
     final effectiveDt = dt * _timeScale;
     super.update(effectiveDt);
     if (_fsm.isBattleOver) return;
@@ -188,6 +220,15 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
 
     stamina.update(effectiveDt);
     enemyStamina.update(effectiveDt);
+
+    if (_idleSpamDecayTimer > 0) {
+      _idleSpamDecayTimer -= effectiveDt;
+      if (_idleSpamDecayTimer <= 0) {
+        _idleSpamDecayTimer = 0;
+        _idleAttackSpamCount = 0;
+        _enemyComponent.endBlock();
+      }
+    }
 
     if (_stateTimer > 0) {
       _stateTimer -= effectiveDt;
@@ -231,6 +272,9 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
 
   @pragma('vm:prefer-inline')
   void _beginEnemyTelegraph() {
+    _enemyComponent.endBlock();
+    _idleAttackSpamCount = 0;
+    _idleSpamDecayTimer = 0.0;
     _enemyDir =
         AttackDirection.values[_rng.nextInt(AttackDirection.values.length)];
     _queuedSwipe = null;
@@ -245,6 +289,9 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
       case BattleState.parrySuccess:
       case BattleState.dodgeSuccess:
         if (!_battleEnded) {
+          _enemyComponent.endBlock();
+          _idleAttackSpamCount = 0;
+          _idleSpamDecayTimer = 0.0;
           _fsm.transition(BattleState.counterWindow);
           _stateTimer = 1.5;
           GameEventBus.instance.emit(const CounterStartEvent());
@@ -257,8 +304,14 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
       case BattleState.enemyHurt:
         _returnToIdle();
       case BattleState.blockSuccess:
-      case BattleState.blockedRecoil:
         _returnToIdle();
+      case BattleState.blockedRecoil:
+        if (_isAntiSpamRecoil) {
+          _isAntiSpamRecoil = false;
+          _beginEnemyTelegraph();
+        } else {
+          _returnToIdle();
+        }
       case BattleState.dodgeFail:
         _applyEnemyDamage();
       case BattleState.enemyHit:
@@ -355,6 +408,49 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
   }
 
   void _executePlayerSlash(AttackDirection direction) {
+    final s = _fsm.current;
+    if (s == BattleState.idle ||
+        s == BattleState.playerSlash ||
+        s == BattleState.enemyHurt) {
+      _idleAttackSpamCount++;
+      _idleSpamDecayTimer = 1.5;
+
+      final shouldParry = _idleAttackSpamCount >= 4;
+
+      if (shouldParry) {
+        _enemyComponent.endBlock();
+        _idleAttackSpamCount = 0;
+        _idleSpamDecayTimer = 0.0;
+        _isAntiSpamRecoil = true;
+        AudioService.instance.playSfx(SfxEvent.parry);
+        spawnParryParticles(this, _enemyCenter());
+        _enemyComponent.playAnimation(CombatAnimation.block);
+        shakeCamera(6.0);
+        _fsm.transition(BattleState.blockedRecoil);
+        _stateTimer = _blockedRecoilDuration;
+        return;
+      }
+
+      // Escalating neutral guard chance: Hit 1 (25%), Hit 2 (50%), Hit 3 (75%)
+      if (!_enemyComponent.isGuarding) {
+        final guardChance = switch (_idleAttackSpamCount) {
+          1 => 0.25,
+          2 => 0.50,
+          3 => 0.75,
+          _ => 1.00,
+        };
+        if (_rng.nextDouble() < guardChance) {
+          _enemyComponent.startBlock();
+        }
+      }
+
+      if (_enemyComponent.isGuarding) {
+        AudioService.instance.playSfx(SfxEvent.parry);
+        spawnParryParticles(this, _enemyCenter());
+        _enemyComponent.playAnimation(CombatAnimation.block);
+      }
+    }
+
     final currentCombo = _stats.currentCombo + 1;
     final dmg = _engine.resolvePlayerAttack(
       direction: direction,
@@ -451,7 +547,7 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
 
   @override
   void onPlayerBlockStart() {
-    if (_battleEnded || _fsm.isBattleOver) return;
+    if (_battleEnded || _fsm.isBattleOver || _fsm.current == BattleState.blockedRecoil) return;
     _playerComponent.startBlock();
   }
 
@@ -462,7 +558,7 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
 
   @override
   void onPlayerDodge({required bool isLeft}) {
-    if (_battleEnded || _fsm.isBattleOver || !_stamina.canDodge) return;
+    if (_battleEnded || _fsm.isBattleOver || !_stamina.canDodge || _fsm.current == BattleState.blockedRecoil) return;
     _playerComponent.setDodgeDirection(isLeft: isLeft);
     _stamina.consumeDodge();
     if (_fsm.current != BattleState.enemyTelegraph) {
@@ -473,10 +569,40 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
 
   @override
   void onPlayerActiveSkill() {
-    if (_battleEnded || _fsm.isBattleOver || !_activeSkill.canActivate) return;
+    if (_battleEnded || _fsm.isBattleOver || !_activeSkill.canActivate || _isTimeFrozen || _fsm.current == BattleState.blockedRecoil) return;
     if (!_activeSkill.consume()) return;
 
     _stats.recordSkillUse();
+    _isTimeFrozen = true;
+
+    final charData = CharacterDatabase.findById(characterId);
+    final charName = charData?.name ?? 'HERO';
+    final skillName = charData?.activeSkill.name.replaceAll('_', ' ').toUpperCase() ?? 'ACTIVE SKILL';
+    final accentCol = charData?.accentColor ?? const Color(0xFFFFD700);
+
+    skillCutInNotifier.value = SkillCutInData(
+      characterId: characterId,
+      characterName: charName,
+      skillName: skillName,
+      accentColor: accentCol,
+    );
+  }
+
+  @override
+  void resumeFromSkillCutIn() {
+    if (_battleEnded || _fsm.isBattleOver) return;
+    _isTimeFrozen = false;
+    skillCutInNotifier.value = null;
+
+    final (archetype, targetEnemy) = SpriteRepository.vfxInfoForCharacter(characterId);
+    final targetPos = targetEnemy ? _enemyCenter() : _playerCenter();
+
+    add(SkillVfxComponent(
+      archetype: archetype,
+      worldPosition: targetPos,
+    ));
+
+    shakeCamera(10.0);
 
     final dmg = _engine.resolveActiveSkill(
       playerAtk: playerStats.atk,
@@ -547,6 +673,9 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
     _battleSessionId++;
     _stateTimer = 0;
     _queuedSwipe = null;
+    _idleAttackSpamCount = 0;
+    _idleSpamDecayTimer = 0.0;
+    _isAntiSpamRecoil = false;
     _fsm.reset();
     _stamina.reset();
     _activeSkill.reset();
@@ -567,6 +696,10 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
     _battleSessionId++;
     _stateTimer = 0;
     _queuedSwipe = null;
+    _idleAttackSpamCount = 0;
+    _idleSpamDecayTimer = 0.0;
+    _isAntiSpamRecoil = false;
+    _enemyComponent.endBlock();
     _fsm.reset();
     _stamina.reset();
     _activeSkill.reset();
@@ -696,6 +829,9 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
 
   void _triggerCounterWindow() {
     if (_fsm.isBattleOver) return;
+    _enemyComponent.endBlock();
+    _idleAttackSpamCount = 0;
+    _idleSpamDecayTimer = 0.0;
     _stats.recordBroken();
     GameEventBus.instance.emit(const BrokenEvent());
     _fsm.transition(BattleState.counterWindow);
@@ -716,6 +852,7 @@ class BattleFlameGame extends BattleGameBase with BattleGameApi {
     playerHpFraction.dispose();
     enemyHpFraction.dispose();
     damageEventNotifier.dispose();
+    skillCutInNotifier.dispose();
 
     super.onRemove();
   }

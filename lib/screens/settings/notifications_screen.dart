@@ -18,18 +18,24 @@ class NotificationsScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF1A1A1A)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF1A1A1A), size: 18),
+          onPressed: () {
+            ComicButton.playButtonSfx();
+            Navigator.of(context).pop();
+          },
+        ),
         title: const Text(
-          'Notifications',
+          'NOTIFICATIONS',
           style: TextStyle(
             color: Color(0xFF1A1A1A),
             fontFamily: 'Bangers',
-            fontSize: 20,
-            letterSpacing: 1.5,
+            fontSize: 22,
+            letterSpacing: 2.5,
           ),
         ),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
+          preferredSize: const Size.fromHeight(1.5),
           child: Container(color: const Color(0xFF1A1A1A), height: 1.5),
         ),
       ),

@@ -8,8 +8,6 @@ import 'package:colosynth/game_settings.dart';
 import 'package:colosynth/providers/service_providers.dart';
 import 'package:colosynth/providers/store_provider.dart';
 import 'package:colosynth/providers/navigation_provider.dart';
-import 'package:colosynth/services/audio_service.dart';
-import 'package:colosynth/services/iap_service.dart';
 import 'package:colosynth/screens/store/daily_free_section.dart';
 import 'package:colosynth/screens/store/ink_shop_section.dart';
 import 'package:colosynth/screens/store/paint_shop_section.dart';
@@ -18,6 +16,7 @@ import 'package:colosynth/screens/store/recruit_tab_screen.dart';
 import 'package:colosynth/screens/store/exp_shop_section.dart';
 import 'package:colosynth/screens/store/synth_shop_section.dart';
 import 'package:colosynth/guide/guide_anchor.dart';
+import 'package:colosynth/widgets/comic/zzz_extruded_banner.dart';
 
 const double _kSlant = 30.0;
 
@@ -77,8 +76,8 @@ class _SlantedSkew extends StatelessWidget {
   }
 }
 
-class _LedScroller extends StatefulWidget {
-  const _LedScroller({
+class _SlopedDualLedBanner extends StatelessWidget {
+  const _SlopedDualLedBanner({
     required this.label,
     this.ledColor = Colors.white,
     this.reverse = false,
@@ -88,119 +87,43 @@ class _LedScroller extends StatefulWidget {
   final Color ledColor;
   final bool reverse;
 
-  @override
-  State<_LedScroller> createState() => _LedScrollerState();
-}
-
-class _LedScrollerState extends State<_LedScroller>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late double _tileWidth;
-
-  static const double _kFontSize = 20.0;
-  static const double _kSpeedPxPerMs = 55.0 / 1000.0;
-
-  static const _textStyle = TextStyle(
-    fontSize: _kFontSize,
-    fontFamily: 'Bangers',
-    letterSpacing: 2.5,
-    height: 1.0,
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    _calcMetrics();
-    final durationMs = math.max(1, (_tileWidth / _kSpeedPxPerMs).round());
-
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: durationMs),
-    )..repeat();
-  }
-
-  void _calcMetrics() {
-    final tileText = '   ${widget.label}   ';
-    final painter = TextPainter(
-      text: TextSpan(text: tileText, style: _textStyle),
-      textDirection: TextDirection.ltr,
-      maxLines: 1,
-    )..layout();
-    _tileWidth = painter.width;
-  }
-
-  @override
-  void didUpdateWidget(covariant _LedScroller oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.label != widget.label) {
-      _calcMetrics();
-      final durationMs = math.max(1, (_tileWidth / _kSpeedPxPerMs).round());
-      _ctrl.duration = Duration(milliseconds: durationMs);
-      if (!_ctrl.isAnimating) _ctrl.repeat();
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
+  static const double _kBannerHeight = 44.0;
 
   @override
   Widget build(BuildContext context) {
-    final tileText = '   ${widget.label}   ';
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenWidth = MediaQuery.of(context).size.width;
         final slantWidth = math.max(screenWidth * 2.5, 1200.0);
         final slantHeight = (slantWidth / screenWidth) * _kSlant;
-        final repeatCount = (_tileWidth > 0 ? (slantWidth / _tileWidth).ceil() : 10) + 4;
-        final fullText = tileText * repeatCount;
 
         return SizedBox(
-          height: 26 + _kSlant,
+          height: _kBannerHeight + _kSlant,
           child: RepaintBoundary(
             child: OverflowBox(
               maxWidth: slantWidth,
-              maxHeight: 26 + slantHeight,
+              maxHeight: _kBannerHeight + slantHeight,
               alignment: Alignment.center,
               child: ClipPath(
                 clipper: _SlopedClipper(
-                  reverse: widget.reverse,
+                  reverse: reverse,
                   referenceWidth: screenWidth,
                 ),
                 child: Container(
                   width: slantWidth,
-                  height: 26 + slantHeight,
+                  height: _kBannerHeight + slantHeight,
                   color: const Color(0xFF0D0D0D),
                   alignment: Alignment.center,
                   child: _SlantedSkew(
-                    reverse: widget.reverse,
-                    child: AnimatedBuilder(
-                      animation: _ctrl,
-                      builder: (context, child) {
-                        final dx = widget.reverse
-                            ? -_tileWidth + (_ctrl.value * _tileWidth)
-                            : -(_ctrl.value * _tileWidth);
-                        return Transform.translate(
-                          offset: Offset(dx, 0),
-                          child: child,
-                        );
-                      },
-                      child: Text(
-                        fullText,
-                        maxLines: 1,
-                        softWrap: false,
-                        style: _textStyle.copyWith(
-                          color: widget.ledColor,
-                          shadows: [
-                            Shadow(
-                              color: widget.ledColor.withValues(alpha: 0.40),
-                              blurRadius: 3,
-                            ),
-                          ],
-                        ),
+                    reverse: reverse,
+                    child: SizedBox(
+                      width: slantWidth,
+                      height: _kBannerHeight,
+                      child: ZzzDualLedBanner(
+                        label: label,
+                        ledColor: ledColor,
+                        reverse: reverse,
+                        height: _kBannerHeight,
                       ),
                     ),
                   ),
@@ -242,12 +165,20 @@ class _SlopedBanner extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _LedScroller(label: label, ledColor: ledColor, reverse: reverse),
+            _SlopedDualLedBanner(
+              label: label,
+              ledColor: ledColor,
+              reverse: reverse,
+            ),
             _SlantedSkew(
               reverse: reverse,
               child: child,
             ),
-            _LedScroller(label: label, ledColor: ledColor, reverse: reverse),
+            _SlopedDualLedBanner(
+              label: label,
+              ledColor: ledColor,
+              reverse: reverse,
+            ),
           ],
         ),
       ],
@@ -284,9 +215,22 @@ class _AdRemoverRow extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 4),
-        SizedBox(
-          height: 84,
-          child: AdFreeShopCard(prices: prices),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 88,
+                child: AdFreeShopCard(prices: prices, compact: true, isDeluxe: false),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SizedBox(
+                height: 88,
+                child: AdFreeShopCard(prices: prices, compact: true, isDeluxe: true),
+              ),
+            ),
+          ],
         ),
       ],
     );

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -9,7 +10,7 @@ class AccountSyncService {
 
   static const Duration _kWriteCooldown = Duration(seconds: 300);
 
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  FirebaseFirestore? get _db => Firebase.apps.isNotEmpty ? FirebaseFirestore.instance : null;
   String? _uid;
 
   bool _isDirty = false;
@@ -125,6 +126,11 @@ class AccountSyncService {
 
   Future<void> _flush() async {
     if (_uid == null || _uid == 'local_guest_offline' || _pending.isEmpty) return;
+    final db = _db;
+    if (db == null) {
+      debugPrint('AccountSyncService: Firebase is not initialized, deferring cloud sync.');
+      return;
+    }
 
     if (_activeWrite != null) {
       await _activeWrite;
@@ -144,7 +150,7 @@ class AccountSyncService {
 
         try {
           debugPrint('AccountSyncService: Syncing ${payload.keys.length} changed fields to users/$_uid...');
-          await _db.collection('users').doc(_uid).set({
+          await db.collection('users').doc(_uid).set({
             ...payload,
             'updatedAt': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));

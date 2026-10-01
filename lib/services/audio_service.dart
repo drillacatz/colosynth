@@ -243,6 +243,14 @@ class AudioService {
     _previewActive = false;
     _previewingType = null;
     if (resumeMain) {
+      if (_currentTrack == BgmTrack.home) {
+        final expectedFile =
+            AudioRepository.resolveFile(BgmTrack.home, _selectedLobbyBgm);
+        if (_currentFile != expectedFile) {
+          await playBgm(BgmTrack.home);
+          return;
+        }
+      }
       await resumeBgm();
     }
   }
@@ -310,7 +318,9 @@ class AudioService {
     } else if (_bgmEnabled) {
       if (_currentTrack == BgmTrack.home && oldLobbyBgm != _selectedLobbyBgm) {
         _currentFile = null;
-        unawaited(playBgm(BgmTrack.home));
+        if (!_previewActive) {
+          unawaited(playBgm(BgmTrack.home));
+        }
       } else if (oldBgmVolume != _bgmVolume) {
         _applyLiveVolume();
       }

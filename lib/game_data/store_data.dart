@@ -52,6 +52,23 @@ class AdFreeBundle {
 }
 
 @immutable
+class AdFreeDeluxeBundle {
+  const AdFreeDeluxeBundle({
+    required this.productId,
+    required this.label,
+    required this.ink,
+    required this.paint,
+    required this.usdFallback,
+  });
+
+  final String productId;
+  final String label;
+  final int ink;
+  final int paint;
+  final String usdFallback;
+}
+
+@immutable
 class ComboBundle {
   const ComboBundle({
     required this.productId,
@@ -156,9 +173,9 @@ class StoreData {
 
   static const List<PaintBundle> paintBundles = [
     PaintBundle(
-      paint: 15,
-      label: '15 PAINT',
-      productId: 'colosynth_paint_15',
+      paint: 20,
+      label: '20 PAINT',
+      productId: 'colosynth_paint_20',
       style: PBStyle.white,
       usdFallback: r'$0.99',
     ),
@@ -201,20 +218,28 @@ class StoreData {
 
   static const List<ComboBundle> comboBundles = [
     ComboBundle(
-      productId: 'colosynth_combo_gearup',
-      label: 'GEARUP BUNDLE',
-      ink: 30000,
-      paint: 300,
-      style: PBStyle.dark,
-      usdFallback: r'$29.99',
+      productId: 'colosynth_combo_strike',
+      label: 'STRIKE COMBO',
+      ink: 8000,
+      paint: 15,
+      style: PBStyle.white,
+      usdFallback: r'$0.99',
     ),
     ComboBundle(
-      productId: 'colosynth_combo_deep',
-      label: 'DEEP BUNDLE',
-      ink: 120000,
-      paint: 800,
+      productId: 'colosynth_combo_tactical',
+      label: 'TACTICAL COMBO',
+      ink: 100000,
+      paint: 120,
       style: PBStyle.dark,
-      usdFallback: r'$69.99',
+      usdFallback: r'$9.99',
+    ),
+    ComboBundle(
+      productId: 'colosynth_combo_gearup',
+      label: 'GEARUP COMBO',
+      ink: 350000,
+      paint: 450,
+      style: PBStyle.dark,
+      usdFallback: r'$29.99',
     ),
   ];
 
@@ -232,6 +257,14 @@ class StoreData {
     productId: 'colosynth_ad_free',
     label: 'AD FREE',
     usdFallback: r'$4.99',
+  );
+
+  static const adFreeDeluxeBundle = AdFreeDeluxeBundle(
+    productId: 'colosynth_ad_free_deluxe',
+    label: 'AD FREE DELUXE',
+    ink: 8888,
+    paint: 88,
+    usdFallback: r'$9.99',
   );
 
   static const List<int> dailyInkStepAmounts = [200, 700, 1050, 1050];

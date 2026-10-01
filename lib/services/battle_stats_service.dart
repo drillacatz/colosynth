@@ -67,10 +67,13 @@ class BattleStatsService {
   int get gamesPlayed => _gamesPlayed;
   int get totalBattles => _totalBattles;
   int get totalWins => _totalWins;
+  int get totalLosses => _totalBattles >= _totalWins ? _totalBattles - _totalWins : 0;
   int get totalParries => _totalParries;
   int get totalBroken => _totalBroken;
   int get longestWinStreak => _longestWinStreak;
+  int get bestStreak => _longestWinStreak;
   int get currentWinStreak => _currentWinStreak;
+  int get currentStreak => _currentWinStreak;
   int get consecutiveLogins => _consecLogins;
   int get totalTournamentWins =>
       _tournamentWins.values.fold(0, (sum, val) => sum + val);

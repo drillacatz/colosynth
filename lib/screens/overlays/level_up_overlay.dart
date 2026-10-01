@@ -88,7 +88,9 @@ class _LevelUpPanel extends StatelessWidget {
       color: Colors.transparent,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 22),
-        padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
         decoration: BoxDecoration(
           color: _bg,
           borderRadius: BorderRadius.circular(4),
@@ -106,66 +108,73 @@ class _LevelUpPanel extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
 
-            _LevelBadge(level: newLevel),
-            const SizedBox(height: 10),
-
-
-            const Text(
-              'LEVEL UP!',
-              style: TextStyle(
-                fontFamily: 'Bangers',
-                fontSize: 44,
-                color: _gold,
-                letterSpacing: 7,
-                height: 1.0,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'You reached Level $newLevel',
-              style: TextStyle(
-                color: _gold.withValues(alpha: 0.50),
-                fontSize: 11,
-                letterSpacing: 3,
-              ),
-            ),
+                _LevelBadge(level: newLevel),
+                const SizedBox(height: 10),
 
 
-            if (newUnlocks.isNotEmpty) ...[
-              const SizedBox(height: 22),
-              Container(height: 1, color: _divider),
-              const SizedBox(height: 14),
-              const Text(
-                '✧  NEWLY UNLOCKED  ✧',
-                style: TextStyle(
-                  color: AppColors.sketchGray,
-                  fontSize: 9,
-                  letterSpacing: 4,
-                  fontWeight: FontWeight.w700,
+                const Text(
+                  'LEVEL UP!',
+                  style: TextStyle(
+                    fontFamily: 'Bangers',
+                    fontSize: 44,
+                    color: _gold,
+                    letterSpacing: 7,
+                    height: 1.0,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              ...List.generate(newUnlocks.length, (i) {
-                return _StaggeredUnlockRow(
-                  gate: newUnlocks[i],
-                  index: i,
-                );
-              }),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  'You reached Level $newLevel',
+                  style: TextStyle(
+                    color: _gold.withValues(alpha: 0.50),
+                    fontSize: 11,
+                    letterSpacing: 3,
+                  ),
+                ),
 
-            const SizedBox(height: 26),
-            ComicButton(
-              label: 'CONTINUE',
-              style: PBStyle.white,
-              fontSize: 18,
-              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 13),
-              onTap: onDismiss,
+
+                if (newUnlocks.isNotEmpty) ...[
+                  const SizedBox(height: 22),
+                  Container(height: 1, color: _divider),
+                  const SizedBox(height: 14),
+                  const Text(
+                    '✧  NEWLY UNLOCKED  ✧',
+                    style: TextStyle(
+                      color: AppColors.sketchGray,
+                      fontSize: 9,
+                      letterSpacing: 4,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...List.generate(newUnlocks.length, (i) {
+                    return _StaggeredUnlockRow(
+                      gate: newUnlocks[i],
+                      index: i,
+                    );
+                  }),
+                ],
+
+                const SizedBox(height: 26),
+                ComicButton(
+                  label: 'CONTINUE',
+                  style: PBStyle.white,
+                  fontSize: 18,
+                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 13),
+                  onTap: onDismiss,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

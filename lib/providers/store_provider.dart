@@ -12,6 +12,7 @@ import 'package:colosynth/providers/service_providers.dart';
 import 'package:colosynth/utils/date_utils.dart';
 import 'package:colosynth/game/event_bus/game_event_bus.dart';
 import 'package:colosynth/game/event_bus/game_events.dart';
+import 'package:colosynth/services/purchase_ledger_service.dart';
 
 class StoreSectionNotifier extends Notifier<StoreSection> {
   @override
@@ -41,11 +42,7 @@ class AdFreeNotifier extends AsyncNotifier<bool> {
   }
 
   Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      await IapService.instance.restorePurchases();
-      return IapService.instance.adFreeActive;
-    });
+    state = AsyncData(IapService.instance.adFreeActive);
   }
 }
 
@@ -263,10 +260,23 @@ class StoreController {
 
   Future<IapResult> buyBundle(String productId) async {
     unawaited(ref.read(analyticsServiceProvider).logPurchaseInitiated(productId));
+    final txId = '${productId}_${DateTime.now().millisecondsSinceEpoch}';
+    await PurchaseLedgerService.instance.recordPending(txId, productId);
+
     final result = await IapService.instance.purchaseProduct(productId);
-    if (result is! IapSuccess) return result;
+    if (result is! IapSuccess) {
+      await PurchaseLedgerService.instance.removePending(txId);
+      return result;
+    }
 
     if (productId == StoreData.adFreeBundle.productId) {
+      unawaited(ref.read(adFreeProvider.notifier).refresh());
+    } else if (productId == StoreData.adFreeDeluxeBundle.productId) {
+      await ref.read(walletProvider.notifier).awardMultiple(
+            ink: StoreData.adFreeDeluxeBundle.ink,
+            paint: StoreData.adFreeDeluxeBundle.paint,
+            source: 'store_purchase',
+          );
       unawaited(ref.read(adFreeProvider.notifier).refresh());
     } else {
       final inkBundle = StoreData.inkBundles
@@ -306,6 +316,7 @@ class StoreController {
         }
       }
     }
+    await PurchaseLedgerService.instance.markFulfilled(txId);
     return result;
   }
 

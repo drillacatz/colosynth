@@ -15,8 +15,7 @@ class AppConfig {
   static const String firebaseWebOAuthClientId = String.fromEnvironment('FIREBASE_WEB_OAUTH_CLIENT_ID');
 
   static const String revenueCatGoogleApiKey = String.fromEnvironment('REVENUECAT_GOOGLE_API_KEY');
-
-
+  static const String revenueCatAppleApiKey = String.fromEnvironment('REVENUECAT_APPLE_API_KEY');
 
   static void validate() {
     if (isProduction) {
@@ -25,7 +24,9 @@ class AppConfig {
       if (firebaseAndroidApiKey.isEmpty) missingKeys.add('FIREBASE_ANDROID_API_KEY');
       if (firebaseAndroidAppId.isEmpty) missingKeys.add('FIREBASE_ANDROID_APP_ID');
       if (firebaseProjectId.isEmpty) missingKeys.add('FIREBASE_PROJECT_ID');
-      if (revenueCatGoogleApiKey.isEmpty) missingKeys.add('REVENUECAT_GOOGLE_API_KEY');
+      if (revenueCatGoogleApiKey.isEmpty && revenueCatAppleApiKey.isEmpty) {
+        missingKeys.add('REVENUECAT_GOOGLE_API_KEY or REVENUECAT_APPLE_API_KEY');
+      }
 
       if (missingKeys.isNotEmpty) {
         throw StateError(

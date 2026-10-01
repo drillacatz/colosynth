@@ -52,14 +52,18 @@ void main() {
         'iap:paint_500',
         'iap:paint_1200',
         'iap:paint_15',
+        'iap:paint_20',
         'iap:paint_85',
         'iap:paint_190',
         'iap:paint_420',
         'iap:paint_1150',
         'iap:paint_2500',
+        'iap:combo_strike',
+        'iap:combo_tactical',
         'iap:combo_gearup',
         'iap:combo_deep',
         'iap:starter_bundle',
+        'iap:ad_free_deluxe',
       ];
 
       for (final src in validRound6Sources) {
@@ -79,9 +83,20 @@ void main() {
 
       expect(StoreData.paintBundles.length, equals(6));
       expect(StoreData.paintBundles.map((b) => b.paint).toList(),
-          equals([15, 85, 190, 420, 1150, 2500]));
+          equals([20, 85, 190, 420, 1150, 2500]));
       expect(StoreData.paintBundles.map((b) => b.usdFallback).toList(),
           equals([r'$0.99', r'$4.99', r'$9.99', r'$19.99', r'$49.99', r'$99.99']));
+
+      expect(StoreData.comboBundles.length, equals(3));
+      expect(StoreData.comboBundles.map((b) => b.productId).toList(),
+          equals(['colosynth_combo_strike', 'colosynth_combo_tactical', 'colosynth_combo_gearup']));
+      expect(StoreData.comboBundles.map((b) => b.usdFallback).toList(),
+          equals([r'$0.99', r'$9.99', r'$29.99']));
+
+      expect(StoreData.adFreeBundle.usdFallback, equals(r'$4.99'));
+      expect(StoreData.adFreeDeluxeBundle.usdFallback, equals(r'$9.99'));
+      expect(StoreData.adFreeDeluxeBundle.paint, equals(88));
+      expect(StoreData.adFreeDeluxeBundle.ink, equals(8888));
 
       // Verify rebalanced exp item bundles (all quantity 1)
       for (final bundle in StoreData.expItemBundles) {

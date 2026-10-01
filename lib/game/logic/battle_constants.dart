@@ -56,6 +56,9 @@ abstract final class BattleTimings {
 
 
   static const double hurtCancelEarlyWindow = 0.12;
+
+  /// Duration player is knocked back/recoiling when parried/blocked (spec: 0.4s).
+  static const double blockedRecoilDuration = 0.4;
 }
 
 
@@ -126,7 +129,7 @@ abstract final class DamageConstants {
   static const double counterComboMult5 = 1.50;
 
   static const double activeSkillDamageMult = 1.0;
-  static const double outOfStaggerDamageMult = 0.25;
+  static const double outOfStaggerDamageMult = 0.20;
 
   static const int minDamage = 0;
   static const int maxDamage = 0x7FFFFFFFFFFFFFFF;

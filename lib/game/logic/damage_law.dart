@@ -32,9 +32,13 @@ class DamageLaw {
   }) {
     final mult = resolveMult(type, comboCount: comboCount, rng: rng) * synthBonusMult;
     final base = (baseAtk * mult).round();
-    final effectiveDef = defenderDef > 0 ? defenderDef : shield;
-    final net = isDefenderGuarding ? max(0, base - effectiveDef) : base;
-    return net.clamp(DamageConstants.minDamage, DamageConstants.maxDamage);
+    if (isDefenderGuarding) {
+      final effectiveDef = defenderDef > 0 ? defenderDef : shield;
+      final reduced = max(0, base - effectiveDef);
+      final finalDmg = damageReduction > 0 ? (reduced * (1.0 - damageReduction)).round() : reduced;
+      return finalDmg.clamp(DamageConstants.minDamage, DamageConstants.maxDamage);
+    }
+    return base.clamp(DamageConstants.minDamage, DamageConstants.maxDamage);
   }
 
   static int compute(

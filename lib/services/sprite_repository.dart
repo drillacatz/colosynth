@@ -59,5 +59,58 @@ abstract final class SpriteRepository {
     if (tier >= 4) return battleBackgroundComicBurst;
     return battleBackgroundNotebook;
   }
+
+  /// Resolves the appropriate boss sprite image path relative to Flame's default images folder (assets/images/).
+  static String bossSpriteForTier(int tier) {
+    if (tier >= 7) return 'boss_dragon.png';
+    if (tier >= 4) return 'boss_cyber.png';
+    return 'boss_chalk.png';
+  }
+
+  /// Skill VFX sprite sheet path relative to Flame images folder (assets/images/).
+  static String skillVfx(String archetype) {
+    const valid = {
+      'slash',
+      'lightning',
+      'arcane_nuke',
+      'fire_blast',
+      'shield_barrier',
+      'holy_light',
+    };
+    final key = valid.contains(archetype) ? archetype : 'slash';
+    return 'vfx/vfx_$key.png';
+  }
+
+  /// Resolves the skill VFX archetype and whether it targets the enemy (true) or self (false).
+  static (String archetype, bool targetEnemy) vfxInfoForCharacter(String characterId) {
+    final clean = characterId.toLowerCase();
+    switch (clean) {
+      case 'lilith':
+        return ('arcane_nuke', true);
+      case 'centrium':
+        return ('lightning', true);
+      case 'char_04':
+        return ('shield_barrier', false);
+      case 'char_05':
+        return ('holy_light', true);
+      case 'char_06':
+        return ('slash', true);
+      case 'char_07':
+        return ('holy_light', false);
+      case 'char_08':
+        return ('fire_blast', false);
+      case 'char_09':
+        return ('slash', true);
+      case 'char_10':
+        return ('fire_blast', true);
+      case 'char_11':
+        return ('arcane_nuke', true);
+      case 'char_12':
+        return ('slash', true);
+      case 'arthur':
+      default:
+        return ('slash', true);
+    }
+  }
 }
 

@@ -1,5 +1,4 @@
 import 'dart:io' show Platform;
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,134 +10,17 @@ import 'package:colosynth/providers/service_providers.dart';
 import 'package:colosynth/providers/shared_preferences_provider.dart';
 import 'package:colosynth/services/achievement_service.dart';
 import 'package:colosynth/services/battle_stats_service.dart';
-import 'package:colosynth/services/level_progress_service.dart';
 import 'package:colosynth/services/sp_manager.dart';
 import 'package:colosynth/screens/theme/background.dart';
+import 'package:colosynth/screens/theme/tokens.dart';
+import 'package:colosynth/screens/settings/stats_screen.dart';
+import 'package:colosynth/widgets/transitions/diagonal_slice_route.dart';
 
+import 'package:colosynth/screens/settings/widgets/profile_presets.dart';
+import 'package:colosynth/screens/settings/widgets/profile_picker_sheets.dart';
 
-class ProfilePresetAvatar {
-  final String id;
-  final String label;
-  final IconData icon;
-  final Color primaryColor;
-  final Color secondaryColor;
-
-  const ProfilePresetAvatar({
-    required this.id,
-    required this.label,
-    required this.icon,
-    required this.primaryColor,
-    required this.secondaryColor,
-  });
-}
-
-class ProfilePresetBanner {
-  final String id;
-  final String title;
-  final List<Color> gradientColors;
-  final IconData icon;
-
-  const ProfilePresetBanner({
-    required this.id,
-    required this.title,
-    required this.gradientColors,
-    required this.icon,
-  });
-}
-
-abstract final class ProfilePresets {
-  static const List<ProfilePresetAvatar> avatars = [
-    ProfilePresetAvatar(
-      id: 'synth',
-      label: 'Synth Warrior',
-      icon: Icons.shield_outlined,
-      primaryColor: Color(0xFF00E5FF),
-      secondaryColor: Color(0xFF1A1A1A),
-    ),
-    ProfilePresetAvatar(
-      id: 'cyber',
-      label: 'Cybersynth',
-      icon: Icons.memory_rounded,
-      primaryColor: Color(0xFF00E5FF),
-      secondaryColor: Color(0xFF001E3C),
-    ),
-    ProfilePresetAvatar(
-      id: 'shadow',
-      label: 'Shadow Ninja',
-      icon: Icons.security_rounded,
-      primaryColor: Color(0xFFA855F7),
-      secondaryColor: Color(0xFF180E29),
-    ),
-    ProfilePresetAvatar(
-      id: 'crown',
-      label: 'Golden Crown',
-      icon: Icons.emoji_events_rounded,
-      primaryColor: Color(0xFFFFD700),
-      secondaryColor: Color(0xFF2D1F00),
-    ),
-    ProfilePresetAvatar(
-      id: 'phoenix',
-      label: 'Fire Phoenix',
-      icon: Icons.local_fire_department_rounded,
-      primaryColor: Color(0xFFFF3D00),
-      secondaryColor: Color(0xFF3E0A00),
-    ),
-    ProfilePresetAvatar(
-      id: 'mech',
-      label: 'Mech Ace',
-      icon: Icons.smart_toy_rounded,
-      primaryColor: Color(0xFF00E676),
-      secondaryColor: Color(0xFF022B14),
-    ),
-  ];
-
-  static const List<ProfilePresetBanner> banners = [
-    ProfilePresetBanner(
-      id: 'cyber_synth',
-      title: 'Cyber Synth',
-      gradientColors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
-      icon: Icons.auto_awesome_mosaic_rounded,
-    ),
-    ProfilePresetBanner(
-      id: 'comic_neon',
-      title: 'Comic Neon',
-      gradientColors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
-      icon: Icons.flash_on_rounded,
-    ),
-    ProfilePresetBanner(
-      id: 'golden_arena',
-      title: 'Golden Arena',
-      gradientColors: [Color(0xFFF2994A), Color(0xFFF2C94C)],
-      icon: Icons.emoji_events_rounded,
-    ),
-    ProfilePresetBanner(
-      id: 'deep_ink',
-      title: 'Deep Ink',
-      gradientColors: [Color(0xFF111111), Color(0xFF232526)],
-      icon: Icons.brush_rounded,
-    ),
-    ProfilePresetBanner(
-      id: 'ruby_strike',
-      title: 'Ruby Strike',
-      gradientColors: [Color(0xFFEB3349), Color(0xFFF45C43)],
-      icon: Icons.whatshot_rounded,
-    ),
-  ];
-
-  static ProfilePresetAvatar getAvatar(String id) {
-    return avatars.firstWhere(
-      (a) => a.id == id,
-      orElse: () => avatars.first,
-    );
-  }
-
-  static ProfilePresetBanner getBanner(String id) {
-    return banners.firstWhere(
-      (b) => b.id == id,
-      orElse: () => banners.first,
-    );
-  }
-}
+export 'package:colosynth/screens/settings/widgets/profile_presets.dart';
+export 'package:colosynth/screens/settings/widgets/profile_picker_sheets.dart';
 
 
 class EditProfileScreen extends ConsumerStatefulWidget {
@@ -250,11 +132,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           .read(walletProvider.notifier)
           .award(Currency.paint, 50, source: 'login_reward_google');
 
+      if (!mounted) return;
       setState(() => _googleRewardClaimed = true);
 
-      if (mounted) {
-        _showRewardSnackBar(context, 'Google Sign-In Reward: +50 🎨 Paint!');
-      }
+      _showRewardSnackBar(context, 'Google Sign-In Reward: +50 🎨 Paint!');
     }
   }
 
@@ -388,11 +269,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           .read(walletProvider.notifier)
           .award(Currency.paint, 50, source: 'login_reward_play_games');
 
+      if (!mounted) return;
       setState(() => _playGamesRewardClaimed = true);
 
-      if (mounted) {
-        _showRewardSnackBar(context, 'Play Games Reward: +50 🎨 Paint!');
-      }
+      _showRewardSnackBar(context, 'Play Games Reward: +50 🎨 Paint!');
     }
   }
 
@@ -465,201 +345,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   void _showAvatarPicker() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'SELECT AVATAR',
-                    style: TextStyle(
-                      fontFamily: 'Bangers',
-                      fontSize: 18,
-                      letterSpacing: 2,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Color(0xFF888888)),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.0,
-                ),
-                itemCount: ProfilePresets.avatars.length,
-                itemBuilder: (_, i) {
-                  final preset = ProfilePresets.avatars[i];
-                  final isSelected = _selectedAvatarId == preset.id;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() => _selectedAvatarId = preset.id);
-                      Navigator.pop(ctx);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      decoration: BoxDecoration(
-                        color: preset.secondaryColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSelected ? preset.primaryColor : const Color(0xFF1A1A1A),
-                          width: isSelected ? 3.0 : 1.5,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: preset.primaryColor.withValues(alpha: 0.4),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                )
-                              ]
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(preset.icon, color: preset.primaryColor, size: 28),
-                          const SizedBox(height: 4),
-                          Text(
-                            preset.label,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: isSelected ? preset.primaryColor : Colors.white70,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        );
-      },
+    showProfileAvatarPicker(
+      context,
+      selectedAvatarId: _selectedAvatarId,
+      onSelected: (id) => setState(() => _selectedAvatarId = id),
     );
   }
 
   void _showBannerPicker() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'PROFILE BACKGROUND',
-                    style: TextStyle(
-                      fontFamily: 'Bangers',
-                      fontSize: 18,
-                      letterSpacing: 2,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Color(0xFF888888)),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                height: 110,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: ProfilePresets.banners.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 12),
-                  itemBuilder: (_, i) {
-                    final b = ProfilePresets.banners[i];
-                    final isSelected = _selectedBannerId == b.id;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() => _selectedBannerId = b.id);
-                        Navigator.pop(ctx);
-                      },
-                      child: Container(
-                        width: 130,
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: b.gradientColors,
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: isSelected ? Colors.white : const Color(0xFF1A1A1A),
-                            width: isSelected ? 3.0 : 1.5,
-                          ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.4),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ]
-                              : null,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(b.icon, color: Colors.white, size: 24),
-                            const SizedBox(height: 6),
-                            Text(
-                              b.title,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontFamily: 'Bangers',
-                                fontSize: 13,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        );
-      },
+    showProfileBannerPicker(
+      context,
+      selectedBannerId: _selectedBannerId,
+      onSelected: (id) => setState(() => _selectedBannerId = id),
     );
   }
 
@@ -668,7 +365,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final isGuest = ref.watch(isGuestProvider);
     final photoUrl = ref.watch(authStateProvider).value?.photoURL;
     final googleName = ref.watch(authStateProvider).value?.displayName;
-    final levelData = ref.watch(accountLevelProvider);
     final stats = BattleStatsService.instance;
 
     final totalBattles = stats.totalBattles;
@@ -677,9 +373,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final winRate = totalBattles > 0
         ? ((wins / totalBattles) * 100).toStringAsFixed(1)
         : '—';
-    final streak = stats.longestWinStreak;
-    final currentStreak = stats.currentWinStreak;
-    final totalXp = levelData.accountXp;
 
     final currentAvatar = ProfilePresets.getAvatar(_selectedAvatarId);
     final currentBanner = ProfilePresets.getBanner(_selectedBannerId);
@@ -1116,144 +809,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   const Divider(color: Color(0xFFD0D0D0), thickness: 1),
                   const SizedBox(height: 20),
 
-                  _WinRateDonutCard(
+                  _CareerStatsShortcutCard(
                     wins: wins,
                     losses: losses,
                     winRate: winRate,
-                    total: totalBattles,
-                    currentStreak: currentStreak,
-                    bestStreak: streak,
-                  ).animate().fadeIn(duration: 260.ms).slideY(begin: 0.08, end: 0),
-
-                  const SizedBox(height: 24),
-
-                  const _SectionLabel(label: 'BATTLE RECORD'),
-                  const SizedBox(height: 10),
-
-                  _StatsGrid(
-                    items: [
-                      _StatItem(
-                        icon: Icons.sports_martial_arts,
-                        label: 'TOTAL BATTLES',
-                        value: '$totalBattles',
-                      ),
-                      _StatItem(
-                        icon: Icons.emoji_events_outlined,
-                        label: 'VICTORIES',
-                        value: '$wins',
-                        valueColor: const Color(0xFF1A7A3A),
-                      ),
-                      _StatItem(
-                        icon: Icons.close_rounded,
-                        label: 'DEFEATS',
-                        value: '$losses',
-                        valueColor: const Color(0xFFCC2222),
-                      ),
-                      _StatItem(
-                        icon: Icons.percent,
-                        label: 'WIN RATE',
-                        value: winRate == '—' ? '—' : '$winRate%',
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  const _SectionLabel(label: 'STREAKS'),
-                  const SizedBox(height: 10),
-
-                  _StatsGrid(
-                    items: [
-                      _StatItem(
-                        icon: Icons.local_fire_department_outlined,
-                        label: 'CURRENT STREAK',
-                        value: '$currentStreak',
-                        valueColor: currentStreak > 0 ? const Color(0xFFE07000) : null,
-                      ),
-                      _StatItem(
-                        icon: Icons.military_tech_outlined,
-                        label: 'BEST STREAK',
-                        value: '$streak',
-                        valueColor: streak >= 5 ? const Color(0xFFE07000) : null,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  const _SectionLabel(label: 'COMBAT PERFORMANCE'),
-                  const SizedBox(height: 10),
-
-                  _StatsGrid(
-                    items: [
-                      _StatItem(
-                        icon: Icons.shield_outlined,
-                        label: 'TOTAL PARRIES',
-                        value: ProgressionService.fmtInk(stats.totalParries),
-                      ),
-                      _StatItem(
-                        icon: Icons.gavel_rounded,
-                        label: 'TOTAL BREAKS',
-                        value: ProgressionService.fmtInk(stats.totalBroken),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  const _SectionLabel(label: 'PROGRESSION'),
-                  const SizedBox(height: 10),
-
-                  _StatsGrid(
-                    items: [
-                      _StatItem(
-                        icon: Icons.trending_up,
-                        label: 'ACCOUNT LEVEL',
-                        value: '${levelData.accountLevel}',
-                      ),
-                      _StatItem(
-                        icon: Icons.star_border_rounded,
-                        label: 'TOTAL XP EARNED',
-                        value: ProgressionService.fmtInk(totalXp.toInt()),
-                      ),
-                      _StatItem(
-                        icon: Icons.calendar_today_outlined,
-                        label: 'CONSECUTIVE LOGINS',
-                        value: '${stats.consecutiveLogins} DAYS',
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  const _SectionLabel(label: 'TOURNAMENTS'),
-                  const SizedBox(height: 10),
-
-                  _StatsGrid(
-                    items: [
-                      _StatItem(
-                        icon: Icons.workspace_premium_outlined,
-                        label: 'EASY WINS',
-                        value: '${stats.tournamentWins('easy')}',
-                      ),
-                      _StatItem(
-                        icon: Icons.workspace_premium_outlined,
-                        label: 'MEDIUM WINS',
-                        value: '${stats.tournamentWins('medium')}',
-                      ),
-                      _StatItem(
-                        icon: Icons.workspace_premium_outlined,
-                        label: 'HARD WINS',
-                        value: '${stats.tournamentWins('hard')}',
-                      ),
-                      _StatItem(
-                        icon: Icons.workspace_premium_outlined,
-                        label: 'EXTREME WINS',
-                        value: '${stats.tournamentWins('extreme')}',
-                        valueColor: const Color(0xFFCC9900),
-                      ),
-                    ],
-                  ),
+                    totalBattles: totalBattles,
+                    onTap: () {
+                      ComicButton.playButtonSfx();
+                      Navigator.of(context).push(
+                        DiagonalSlicePageRoute<void>(
+                          builder: (_) => const StatsScreen(),
+                        ),
+                      );
+                    },
+                  ).animate().fadeIn(duration: 240.ms).slideY(begin: 0.06, end: 0),
 
                   if (!isGuest) ...[
                     const SizedBox(height: 32),
@@ -1381,249 +950,143 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 }
 
 
-class _WinRateDonutCard extends StatelessWidget {
-  const _WinRateDonutCard({
+class _CareerStatsShortcutCard extends StatelessWidget {
+  const _CareerStatsShortcutCard({
     required this.wins,
     required this.losses,
     required this.winRate,
-    required this.total,
-    required this.currentStreak,
-    required this.bestStreak,
+    required this.totalBattles,
+    required this.onTap,
   });
 
   final int wins;
   final int losses;
   final String winRate;
-  final int total;
-  final int currentStreak;
-  final int bestStreak;
+  final int totalBattles;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final winRatio = total > 0 ? (wins / total).clamp(0.0, 1.0) : 0.0;
-    final lossRatio = total > 0 ? (losses / total).clamp(0.0, 1.0) : 0.0;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF1A1A1A), width: 1.5),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0xFF1A1A1A),
-            offset: Offset(3, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'BATTLE WIN RATE',
-                style: TextStyle(
-                  fontFamily: 'Bangers',
-                  fontSize: 17,
-                  letterSpacing: 2,
-                  color: Color(0xFF1A1A1A),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFF1A1A1A), width: 1.8),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0xFF1A1A1A),
+              offset: Offset(3, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 16),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  '$total TOTAL BATTLES',
-                  style: const TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1,
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'CAREER & STATS',
+                    style: TextStyle(
+                      fontFamily: 'Bangers',
+                      fontSize: 16,
+                      letterSpacing: 1.5,
+                      color: Color(0xFF1A1A1A),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: CustomPaint(
-                  painter: _DonutChartPainter(
-                    winRatio: winRatio,
-                    lossRatio: lossRatio,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEEEEE),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: const Color(0xFF1A1A1A), width: 1),
                   ),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          winRate == '—' ? '—' : '$winRate%',
-                          style: const TextStyle(
-                            fontFamily: 'Bangers',
-                            fontSize: 22,
-                            color: Color(0xFF1A1A1A),
-                            height: 1.0,
-                          ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'VIEW ALL',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                          color: Color(0xFF1A1A1A),
                         ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'WIN RATE',
-                          style: TextStyle(
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF888888),
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                      SizedBox(width: 2),
+                      Icon(Icons.chevron_right, size: 12, color: Color(0xFF1A1A1A)),
+                    ],
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F7F7),
+                borderRadius: BorderRadius.circular(6),
               ),
-
-              const SizedBox(width: 20),
-
-              Expanded(
-                child: Column(
-                  children: [
-                    _ChartLegendItem(
-                      color: const Color(0xFF00E676),
-                      label: 'VICTORIES',
-                      value: '$wins',
-                    ),
-                    const SizedBox(height: 10),
-                    _ChartLegendItem(
-                      color: const Color(0xFFFF1744),
-                      label: 'DEFEATS',
-                      value: '$losses',
-                    ),
-                    const SizedBox(height: 10),
-                    _ChartLegendItem(
-                      color: const Color(0xFFFFAB00),
-                      label: 'BEST STREAK',
-                      value: '$bestStreak WINS',
-                    ),
-                  ],
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _MiniStat(label: 'BATTLES', value: '$totalBattles'),
+                  Container(width: 1, height: 24, color: const Color(0xFFDDDDDD)),
+                  _MiniStat(label: 'WINS', value: '$wins', color: const Color(0xFF1A7A3A)),
+                  Container(width: 1, height: 24, color: const Color(0xFFDDDDDD)),
+                  _MiniStat(label: 'DEFEATS', value: '$losses', color: const Color(0xFFCC2222)),
+                  Container(width: 1, height: 24, color: const Color(0xFFDDDDDD)),
+                  _MiniStat(label: 'WIN RATE', value: winRate == '—' ? '—' : '$winRate%'),
+                ],
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _DonutChartPainter extends CustomPainter {
-  final double winRatio;
-  final double lossRatio;
-
-  _DonutChartPainter({required this.winRatio, required this.lossRatio});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 8;
-    final strokeWidth = 14.0;
-
-    final bgPaint = Paint()
-      ..color = const Color(0xFFEEEEEE)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-    canvas.drawCircle(center, radius, bgPaint);
-
-    if (winRatio <= 0 && lossRatio <= 0) return;
-
-    final startAngle = -math.pi / 2;
-
-    if (winRatio > 0) {
-      final winSweep = 2 * math.pi * winRatio;
-      final winPaint = Paint()
-        ..color = const Color(0xFF00E676)
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = strokeWidth;
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle,
-        winSweep,
-        false,
-        winPaint,
-      );
-    }
-
-    if (lossRatio > 0) {
-      final lossSweep = 2 * math.pi * lossRatio;
-      final lossStart = startAngle + (2 * math.pi * winRatio);
-      final lossPaint = Paint()
-        ..color = const Color(0xFFFF1744)
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = strokeWidth;
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        lossStart,
-        lossSweep,
-        false,
-        lossPaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DonutChartPainter oldDelegate) =>
-      oldDelegate.winRatio != winRatio || oldDelegate.lossRatio != lossRatio;
-}
-
-class _ChartLegendItem extends StatelessWidget {
-  final Color color;
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({required this.label, required this.value, this.color});
   final String label;
   final String value;
-
-  const _ChartLegendItem({
-    required this.color,
-    required this.label,
-    required this.value,
-  });
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 8,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1,
+            color: Color(0xFF888888),
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF666666),
-              letterSpacing: 1.0,
-            ),
-          ),
-        ),
+        const SizedBox(height: 2),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF1A1A1A),
+          style: TextStyle(
+            fontFamily: 'Bangers',
+            fontSize: 16,
+            color: color ?? const Color(0xFF1A1A1A),
             letterSpacing: 0.5,
           ),
         ),
@@ -1651,127 +1114,4 @@ class _BannerPatternPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-
-class _StatsGrid extends StatelessWidget {
-  const _StatsGrid({required this.items});
-
-  final List<_StatItem> items;
-
-  @override
-  Widget build(BuildContext context) {
-    final rows = <Widget>[];
-    for (int i = 0; i < items.length; i += 2) {
-      final a = items[i];
-      final b = i + 1 < items.length ? items[i + 1] : null;
-      rows.add(
-        IntrinsicHeight(
-          child: Row(
-            children: [
-              Expanded(child: _StatCell(item: a)),
-              if (b != null) ...[
-                const SizedBox(width: 12),
-                Expanded(child: _StatCell(item: b)),
-              ] else
-                const Expanded(child: SizedBox()),
-            ],
-          ),
-        ),
-      );
-      if (i + 2 < items.length) rows.add(const SizedBox(height: 12));
-    }
-
-    return Column(children: rows);
-  }
-}
-
-class _StatItem {
-  const _StatItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color? valueColor;
-}
-
-class _StatCell extends StatelessWidget {
-  const _StatCell({required this.item});
-
-  final _StatItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFDDDDDD), width: 1),
-      ),
-      child: Row(
-        children: [
-          Icon(item.icon, color: const Color(0xFFAAAAAA), size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.label,
-                  style: const TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 9,
-                    letterSpacing: 1.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  item.value,
-                  style: TextStyle(
-                    color: item.valueColor ?? const Color(0xFF1A1A1A),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF666666),
-            fontSize: 11,
-            letterSpacing: 4,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(width: 12),
-        const Expanded(
-          child: Divider(color: Color(0xFFD0D0D0), thickness: 1),
-        ),
-      ],
-    );
-  }
 }

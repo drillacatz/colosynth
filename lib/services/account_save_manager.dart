@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:colosynth/game_settings.dart';
@@ -28,20 +29,22 @@ class AccountSaveManager {
   final _paintMutex = AsyncMutex();
   final _xpMutex = AsyncMutex();
 
-
-
+  final Map<String, int> _verifiedIntCache = {};
 
   void bindUser(String uid) {
     _uid = uid;
+    _verifiedIntCache.clear();
     _sync.bindUser(uid);
   }
 
   void unbindUser() {
     _uid = null;
+    _verifiedIntCache.clear();
     _sync.unbindUser();
   }
 
   Future<void> _writeIntegrityInt(String key, String tagKey, int value) async {
+    _verifiedIntCache[key] = value;
     final tag = _guard.computeTag(key, value);
     await Future.wait([
       _p.setInt(key, value),
@@ -50,6 +53,9 @@ class AccountSaveManager {
   }
 
   int _readIntegrityInt(String key, String tagKey) {
+    final cached = _verifiedIntCache[key];
+    if (cached != null) return cached;
+
     final value = _p.getInt(key) ?? 0;
     final tag = _p.getString(tagKey);
     if (tag == null) {
@@ -62,9 +68,11 @@ class AccountSaveManager {
         } else {
           AppLogger.d('AccountSaveManager', 'Missing tag for guest key: $key. Regenerating tag.');
           unawaited(_writeIntegrityInt(key, tagKey, value));
+          _verifiedIntCache[key] = value;
           return value;
         }
       }
+      _verifiedIntCache[key] = value;
       return value;
     }
     if (!_guard.verifyTag(key, value, tag)) {
@@ -78,12 +86,13 @@ class AccountSaveManager {
       }
       return 0;
     }
+    _verifiedIntCache[key] = value;
     return value;
   }
 
   Future<void> _recoverFieldFromCloud(String key, String tagKey) async {
     final uid = _uid;
-    if (uid == null || uid == 'local_guest_offline') return;
+    if (uid == null || uid == 'local_guest_offline' || Firebase.apps.isEmpty) return;
 
     try {
       final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
@@ -341,6 +350,7 @@ class AccountSaveManager {
 
 
   Future<void> resetAll() async {
+    _verifiedIntCache.clear();
     final keysToKeep = {
       SPKeys.hmacKey,
       SPKeys.adInstallDate,
@@ -385,10 +395,12 @@ class AccountSaveManager {
     try {
       if (d['tournamentProgress'] is Map) {
         final rawMap = d['tournamentProgress'] as Map;
+        final local = loadTournamentProgress();
         final safe = <String, String>{};
         for (final e in rawMap.entries) {
           safe[e.key.toString()] = e.value.toString();
         }
+        safe.addAll(local);
         await _p.setString(SPKeys.tournamentProgress, jsonEncode(safe));
       }
     } catch (e) {

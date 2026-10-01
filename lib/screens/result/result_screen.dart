@@ -248,125 +248,137 @@ class _ResultScreenState extends ConsumerState<ResultScreen>
           ),
 
           SafeArea(
-            child: Column(
-              children: [
-                const Spacer(),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        children: [
+                          const Spacer(),
 
-                _ResultBanner(
-                  isVictory: isVictory,
-                  primaryColor: primaryColor,
-                )
-                    .animate()
-                    .scale(
-                        begin: const Offset(0.7, 0.7),
-                        duration: 400.ms,
-                        curve: Curves.elasticOut)
-                    .fadeIn(duration: 250.ms),
-
-                const SizedBox(height: 24),
-
-                Text(
-                  widget.slot.enemyName,
-                  style: const TextStyle(
-                    fontFamily: 'Bangers',
-                    fontSize: 28,
-                    letterSpacing: 2,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.1, end: 0),
-
-                Text(
-                  widget.slot.id.startsWith('tutorial_')
-                      ? 'TUTORIAL - LESSON ${(int.tryParse(widget.slot.id.split('_').last) ?? 0) + 1}'
-                      : 'TIER ${widget.slot.tournamentTier} - STAGE ${widget.slot.id.contains('_') ? widget.slot.id.split('_')[1].toUpperCase() : widget.slot.id.toUpperCase()}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    letterSpacing: 3,
-                    color: Colors.black54,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ).animate(delay: 260.ms).fadeIn(),
-
-                const Spacer(),
-
-                if (isVictory)
-                  _RewardsCard(
-                    ink: _grantedInk,
-                    paint: _grantedPaint,
-                    xp: _grantedXp,
-                    isFirstClear: _isFirstClear,
-                    isTierComplete: _isTierComplete,
-                    counter: _counterAnimation,
-                  )
-                      .animate(delay: 450.ms)
-                      .fadeIn(duration: 350.ms)
-                      .slideY(begin: 0.05, end: 0, curve: Curves.easeOutCubic)
-                else
-                  _DefeatStatsCard(result: widget.result)
-                      .animate(delay: 350.ms)
-                      .fadeIn(duration: 300.ms),
-
-                const SizedBox(height: 16),
-
-                if (isVictory)
-                  _StatsRow(result: widget.result)
-                      .animate(delay: 650.ms)
-                      .fadeIn(duration: 300.ms),
-
-                const Spacer(),
-
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isVictory &&
-                          _grantedInk > 0 &&
-                          _canDoubleReward &&
-                          !_doubleRewardClaimed) ...[
-                        _DoubleRewardButton(
-                          canShow: true,
-                          claimed: _doubleRewardClaimed,
-                          busy: _doubleRewardBusy,
-                          remaining: _remainingDoubleRewards,
-                          onTap: _handleDoubleRewardTap,
-                        )
-                            .animate(delay: 750.ms)
-                            .fadeIn(duration: 300.ms)
-                            .slideY(begin: 0.05, end: 0),
-                        const SizedBox(height: 12),
-                        _ContinueButton(
-                          primaryColor: primaryColor,
-                          label: 'CLAIM & CONTINUE',
-                          isSecondary: true,
-                          onTap: _handleContinueTap,
-                        )
-                            .animate(delay: 850.ms)
-                            .fadeIn(duration: 250.ms)
-                            .slideY(begin: 0.05, end: 0),
-                      ] else ...[
-                        if (_doubleRewardClaimed) ...[
-                          const _DoubleRewardClaimedBadge()
+                          _ResultBanner(
+                            isVictory: isVictory,
+                            primaryColor: primaryColor,
+                          )
                               .animate()
-                              .fadeIn(duration: 300.ms),
-                          const SizedBox(height: 12),
-                        ],
-                        _ContinueButton(
-                          primaryColor: primaryColor,
-                          label: 'CONTINUE',
-                          isSecondary: false,
-                          onTap: _handleContinueTap,
-                        )
-                            .animate(delay: 750.ms)
-                            .fadeIn(duration: 250.ms)
-                            .slideY(begin: 0.05, end: 0),
-                      ],
-                    ],
-                  ),
-                ),
+                              .scale(
+                                  begin: const Offset(0.7, 0.7),
+                                  duration: 400.ms,
+                                  curve: Curves.elasticOut)
+                              .fadeIn(duration: 250.ms),
 
-                const SizedBox(height: 24),
-              ],
+                          const SizedBox(height: 24),
+
+                          Text(
+                            widget.slot.enemyName,
+                            style: const TextStyle(
+                              fontFamily: 'Bangers',
+                              fontSize: 28,
+                              letterSpacing: 2,
+                              color: Color(0xFF1A1A1A),
+                            ),
+                          ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.1, end: 0),
+
+                          Text(
+                            widget.slot.id.startsWith('tutorial_')
+                                ? 'TUTORIAL - LESSON ${(int.tryParse(widget.slot.id.split('_').last) ?? 0) + 1}'
+                                : 'TIER ${widget.slot.tournamentTier} - STAGE ${widget.slot.id.contains('_') ? widget.slot.id.split('_')[1].toUpperCase() : widget.slot.id.toUpperCase()}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              letterSpacing: 3,
+                              color: Colors.black54,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ).animate(delay: 260.ms).fadeIn(),
+
+                          const Spacer(),
+
+                          if (isVictory)
+                            _RewardsCard(
+                              ink: _grantedInk,
+                              paint: _grantedPaint,
+                              xp: _grantedXp,
+                              isFirstClear: _isFirstClear,
+                              isTierComplete: _isTierComplete,
+                              counter: _counterAnimation,
+                            )
+                                .animate(delay: 450.ms)
+                                .fadeIn(duration: 350.ms)
+                                .slideY(begin: 0.05, end: 0, curve: Curves.easeOutCubic)
+                          else
+                            _DefeatStatsCard(result: widget.result)
+                                .animate(delay: 350.ms)
+                                .fadeIn(duration: 300.ms),
+
+                          const SizedBox(height: 16),
+
+                          if (isVictory)
+                            _StatsRow(result: widget.result)
+                                .animate(delay: 650.ms)
+                                .fadeIn(duration: 300.ms),
+
+                          const Spacer(),
+
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isVictory &&
+                                    _grantedInk > 0 &&
+                                    _canDoubleReward &&
+                                    !_doubleRewardClaimed) ...[
+                                  _DoubleRewardButton(
+                                    canShow: true,
+                                    claimed: _doubleRewardClaimed,
+                                    busy: _doubleRewardBusy,
+                                    remaining: _remainingDoubleRewards,
+                                    onTap: _handleDoubleRewardTap,
+                                  )
+                                      .animate(delay: 750.ms)
+                                      .fadeIn(duration: 300.ms)
+                                      .slideY(begin: 0.05, end: 0),
+                                  const SizedBox(height: 12),
+                                  _ContinueButton(
+                                    primaryColor: primaryColor,
+                                    label: 'CLAIM & CONTINUE',
+                                    isSecondary: true,
+                                    onTap: _handleContinueTap,
+                                  )
+                                      .animate(delay: 850.ms)
+                                      .fadeIn(duration: 250.ms)
+                                      .slideY(begin: 0.05, end: 0),
+                                ] else ...[
+                                  if (_doubleRewardClaimed) ...[
+                                    const _DoubleRewardClaimedBadge()
+                                        .animate()
+                                        .fadeIn(duration: 300.ms),
+                                    const SizedBox(height: 12),
+                                  ],
+                                  _ContinueButton(
+                                    primaryColor: primaryColor,
+                                    label: 'CONTINUE',
+                                    isSecondary: false,
+                                    onTap: _handleContinueTap,
+                                  )
+                                      .animate(delay: 750.ms)
+                                      .fadeIn(duration: 250.ms)
+                                      .slideY(begin: 0.05, end: 0),
+                                ],
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],

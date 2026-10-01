@@ -17,7 +17,6 @@ import 'package:colosynth/services/save_manager.dart';
 import 'package:colosynth/services/audio_service.dart';
 import 'package:colosynth/services/app_initializer.dart';
 import 'package:colosynth/screens/theme/tokens.dart';
-import 'package:colosynth/tools/ui_studio_screen.dart';
 import 'package:colosynth/utils/app_logger.dart';
 
 class RootApp extends ConsumerStatefulWidget {
@@ -98,8 +97,6 @@ class _RootAppState extends ConsumerState<RootApp> {
       debugShowCheckedModeBanner: false,
       theme: _appTheme,
       home: _buildHome(),
-      builder: (context, child) =>
-          child != null ? UiStudioBubble(child: child) : const SizedBox.shrink(),
       onUnknownRoute: (_) => _instantRoute(const HomeScreen()),
     );
   }

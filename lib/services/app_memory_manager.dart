@@ -47,8 +47,6 @@ class AppMemoryManager with WidgetsBindingObserver {
   /// the resident set size (RSS) and avoid Android 14/15/16 Low Memory Killer terminations.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    AudioService.instance.handleLifecycleState(state);
-
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:

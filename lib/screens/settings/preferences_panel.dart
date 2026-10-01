@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:colosynth/screens/settings/music_screen.dart';
 import 'package:colosynth/screens/settings/notifications_screen.dart';
-import 'package:colosynth/screens/settings/edit_profile_screen.dart';
+import 'package:colosynth/screens/settings/stats_screen.dart';
+import 'package:colosynth/screens/theme/tokens.dart';
+import 'package:colosynth/widgets/transitions/diagonal_slice_route.dart';
 
 class GameplayPreferencesPanel extends StatelessWidget {
   const GameplayPreferencesPanel({super.key});
@@ -19,29 +21,36 @@ class GameplayPreferencesPanel extends StatelessWidget {
           _NavTile(
             label: 'Music & Sound',
             icon: Icons.music_note,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(builder: (_) => const MusicScreen()),
-            ),
+            onTap: () {
+              ComicButton.playButtonSfx();
+              Navigator.of(context, rootNavigator: true).push(
+                DiagonalSlicePageRoute<void>(
+                    builder: (_) => const MusicScreen()),
+              );
+            },
           ),
           const _SettingsDivider(),
           _NavTile(
             label: 'Notifications',
             icon: Icons.notifications_none_outlined,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(
-                  builder: (_) => const NotificationsScreen()),
-            ),
+            onTap: () {
+              ComicButton.playButtonSfx();
+              Navigator.of(context, rootNavigator: true).push(
+                DiagonalSlicePageRoute<void>(
+                    builder: (_) => const NotificationsScreen()),
+              );
+            },
           ),
           const _SettingsDivider(),
           _StatsTile(
-            onTap: () => Navigator.of(context, rootNavigator: true).push(
-              MaterialPageRoute<void>(
-                fullscreenDialog: true,
-                builder: (_) => const EditProfileScreen(),
-              ),
-            ),
+            onTap: () {
+              ComicButton.playButtonSfx();
+              Navigator.of(context, rootNavigator: true).push(
+                DiagonalSlicePageRoute<void>(
+                  builder: (_) => const StatsScreen(),
+                ),
+              );
+            },
           ),
         ],
       ),

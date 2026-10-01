@@ -79,7 +79,8 @@ class _SettingsOverlayState extends ConsumerState<SettingsOverlay> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const _SectionHeader(label: 'PROFILE', icon: Icons.person)
+                          const _SectionHeader(
+                                  label: 'PROFILE', icon: Icons.person)
                               .animate(delay: 30.ms)
                               .fadeIn(duration: 140.ms)
                               .slideX(
@@ -100,7 +101,8 @@ class _SettingsOverlayState extends ConsumerState<SettingsOverlay> {
                               ),
                           const SizedBox(height: 18),
                           const _SectionHeader(
-                                  label: 'GAMEPLAY PREFERENCES', icon: Icons.settings)
+                                  label: 'GAMEPLAY PREFERENCES',
+                                  icon: Icons.settings)
                               .animate(delay: 110.ms)
                               .fadeIn(duration: 140.ms)
                               .slideX(
@@ -121,7 +123,8 @@ class _SettingsOverlayState extends ConsumerState<SettingsOverlay> {
                               ),
                           const SizedBox(height: 18),
                           const _SectionHeader(
-                                  label: 'APP SUPPORT', icon: Icons.help_outline)
+                                  label: 'APP SUPPORT',
+                                  icon: Icons.help_outline)
                               .animate(delay: 190.ms)
                               .fadeIn(duration: 140.ms)
                               .slideX(
@@ -342,11 +345,11 @@ class _SectionHeader extends StatelessWidget {
           style: const TextStyle(
             color: Color(0xFF666666),
             fontSize: 11,
-            letterSpacing: 4,
+            letterSpacing: 2,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         const Expanded(
           child: Divider(color: Color(0xFFD0D0D0), thickness: 1),
         ),
@@ -403,8 +406,9 @@ class _AboutFooter extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             GestureDetector(
               onTap: () => _launch(context, _termsUrl),

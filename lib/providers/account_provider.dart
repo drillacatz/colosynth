@@ -206,6 +206,10 @@ class EquippedCharacterNotifier extends Notifier<String> {
   @override
   String build() {
     ref.watch(saveSyncReadyProvider);
+    final saveManager = ref.watch(saveManagerProvider);
+    if (!saveManager.isInitialized) {
+      return 'arthur';
+    }
     final sm = ref.read(accountSaveProvider);
     return sm.loadEquippedCharacter() ?? 'arthur';
   }

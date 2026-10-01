@@ -26,11 +26,13 @@ abstract final class GuideDatabase {
 
   /// Maps a level slot ID to its before-battle intro guide ID.
   static const Map<String, String> _levelIntros = {
+    'tutorial_0': 't1_a_0_intro',
     't1_a_0': 't1_a_0_intro',
   };
 
   /// Maps a level slot ID to its after-battle outro guide ID.
   static const Map<String, String> _levelOutros = {
+    'tutorial_0': 't1_a_0_outro',
     't1_a_0': 't1_a_0_outro',
   };
 

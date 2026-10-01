@@ -31,8 +31,20 @@ class _BattleHudWidgetState extends ConsumerState<BattleHudWidget> {
   @override
   void initState() {
     super.initState();
-    widget.game.loaded.then((_) {
-      if (mounted) setState(() => _world = widget.game as BattleGameApi);
+    _subscribeToGame(widget.game);
+  }
+
+  @override
+  void didUpdateWidget(covariant BattleHudWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.game != widget.game) {
+      _subscribeToGame(widget.game);
+    }
+  }
+
+  void _subscribeToGame(FlameGame game) {
+    game.loaded.then((_) {
+      if (mounted) setState(() => _world = game as BattleGameApi);
     }).catchError((e) {
       debugPrint('BattleHudWidget: game load error — $e');
     });

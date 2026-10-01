@@ -17,6 +17,7 @@ class SynthKeysNotifier extends Notifier<int> {
   int build() {
     ref.watch(authStateProvider);
     ref.watch(saveSyncReadyProvider);
+    if (!SaveManager.instance.isInitialized) return 0;
     return SaveManager.instance.loadSynthKeys();
   }
 
@@ -48,6 +49,7 @@ class OwnedSynthInstancesNotifier
   Map<String, SynthInstance> build() {
     ref.watch(authStateProvider);
     ref.watch(saveSyncReadyProvider);
+    if (!SaveManager.instance.isInitialized) return const {};
     return SaveManager.instance.gameplay.loadSynthInstances();
   }
 

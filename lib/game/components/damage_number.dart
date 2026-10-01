@@ -65,7 +65,7 @@ class DamageNumber extends PositionComponent {
   void update(double dt) {
     _elapsed += dt;
     if (_elapsed >= _duration) {
-      removeFromParent();
+      if (isMounted) removeFromParent();
       return;
     }
 

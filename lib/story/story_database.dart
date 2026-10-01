@@ -5,11 +5,13 @@ import 'package:colosynth/story/models/story_sequence.dart';
 abstract final class StoryDatabase {
   /// Maps a Level Slot ID (e.g. `t1_a_0`) to before-battle intro story sequence ID.
   static const Map<String, String> levelIntros = {
+    'tutorial_0': 't1_a_0_intro',
     't1_a_0': 't1_a_0_intro',
   };
 
   /// Maps a Level Slot ID (e.g. `t1_a_0`) to after-battle outro story sequence ID.
   static const Map<String, String> levelOutros = {
+    'tutorial_0': 't1_a_0_outro',
     't1_a_0': 't1_a_0_outro',
   };
 

@@ -32,44 +32,49 @@ class InitializationErrorScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.warning_amber_rounded,
-                  color: violet,
-                  size: 80,
+          child: Center(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: violet,
+                      size: 80,
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'INITIALIZATION FAILED',
+                      style: TextStyle(
+                        color: cyan,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 4,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'System initialization interrupted. We encountered a critical error during startup.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 16,
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 40),
+                    _buildErrorBox(context),
+                    const SizedBox(height: 40),
+                    _buildRetryButton(),
+                    const SizedBox(height: 16),
+                    _buildExitButton(),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                const Text(
-                  'INITIALIZATION FAILED',
-                  style: TextStyle(
-                    color: cyan,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'System initialization interrupted. We encountered a critical error during startup.',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 16,
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 40),
-                _buildErrorBox(context),
-                const SizedBox(height: 40),
-                _buildRetryButton(),
-                const SizedBox(height: 16),
-                _buildExitButton(),
-              ],
+              ),
             ),
           ),
         ),

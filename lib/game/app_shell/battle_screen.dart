@@ -11,6 +11,7 @@ import 'package:colosynth/game/scenes/battle_scene.dart';
 import 'package:colosynth/game/widgets/battle_hud_widget.dart';
 import 'package:colosynth/game/widgets/battle_pause_widget.dart';
 import 'package:colosynth/game/widgets/battle_overlays.dart';
+import 'package:colosynth/screens/battle/p5_cut_in_overlay.dart';
 
 import 'package:colosynth/game/app_shell/battle_models.dart';
 import 'package:colosynth/game/app_shell/battle_game.dart';
@@ -110,8 +111,24 @@ class _BattleScreenState extends ConsumerState<BattleScreen> {
     }
   }
 
+  void _attachGameApi(BattleGameApi game) {
+    if (_api == game) return;
+    _api?.battleResultNotifier.removeListener(_onResultChanged);
+    _api = game;
+    _api!.battleResultNotifier.addListener(_onResultChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onGameReady?.call();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    ref.listen<BattleFlameGame>(battleGameProvider(widget.params), (prev, next) {
+      setState(() {
+        _attachGameApi(next);
+      });
+    });
+
     final statsAsync = ref.watch(battleStatsProvider);
 
     if (statsAsync.hasError) {
@@ -136,14 +153,8 @@ class _BattleScreenState extends ConsumerState<BattleScreen> {
     }
 
     final game = ref.watch(battleGameProvider(widget.params));
-
     if (_api != game) {
-      _api?.battleResultNotifier.removeListener(_onResultChanged);
-      _api = game;
-      _api!.battleResultNotifier.addListener(_onResultChanged);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) widget.onGameReady?.call();
-      });
+      _attachGameApi(game);
     }
 
     return PopScope(
@@ -174,6 +185,24 @@ class _BattleScreenState extends ConsumerState<BattleScreen> {
                     onPause: () => _setPaused(true),
                   ),
                 ),
+              if (_api != null)
+                ValueListenableBuilder<SkillCutInData?>(
+                  valueListenable: _api!.skillCutInNotifier,
+                  builder: (context, cutInData, _) {
+                    if (cutInData == null) return const SizedBox.shrink();
+                    return RepaintBoundary(
+                      child: P5CutInOverlay(
+                        characterId: cutInData.characterId,
+                        characterName: cutInData.characterName,
+                        skillName: cutInData.skillName,
+                        accentColor: cutInData.accentColor,
+                        onComplete: () {
+                          _api?.resumeFromSkillCutIn();
+                        },
+                      ),
+                    );
+                  },
+                ),
               if (_paused && _finalResult == null && _api != null)
                 RepaintBoundary(
                   child: BattlePauseWidget(
@@ -188,7 +217,7 @@ class _BattleScreenState extends ConsumerState<BattleScreen> {
               if (_finalResult?.outcome == BattleOutcome.defeat)
                 RepaintBoundary(
                   child: DefeatOverlay(
-                    reviveAvailable: ref.read(rewardedAdServiceProvider).isReady,
+                    reviveAvailable: ref.watch(rewardedAdServiceProvider).isReady,
                     onRevive: () {
                       ref.read(rewardedAdServiceProvider).showAd(
                         onRewarded: () {
@@ -258,18 +287,33 @@ class _VignetteOverlay extends StatefulWidget {
 }
 
 class _VignetteOverlayState extends State<_VignetteOverlay> {
+  ui.Picture? _cachedPicture;
+  Size? _lastSize;
+
   @override
   void dispose() {
-    _VignettePainter.disposeCache();
+    _cachedPicture?.dispose();
+    _cachedPicture = null;
+    _lastSize = null;
     super.dispose();
+  }
+
+  void _updateCache(ui.Picture picture, Size size) {
+    _cachedPicture?.dispose();
+    _cachedPicture = picture;
+    _lastSize = size;
   }
 
   @override
   Widget build(BuildContext context) {
-    return const RepaintBoundary(
+    return RepaintBoundary(
       child: SizedBox.expand(
         child: CustomPaint(
-          painter: _VignettePainter(),
+          painter: _VignettePainter(
+            cachedPicture: _cachedPicture,
+            lastSize: _lastSize,
+            onCacheUpdate: _updateCache,
+          ),
         ),
       ),
     );
@@ -277,22 +321,19 @@ class _VignetteOverlayState extends State<_VignetteOverlay> {
 }
 
 class _VignettePainter extends CustomPainter {
-  const _VignettePainter();
+  const _VignettePainter({
+    required this.cachedPicture,
+    required this.lastSize,
+    required this.onCacheUpdate,
+  });
 
-  static Size? _lastSize;
-  static ui.Picture? _cachedPicture;
-
-  static void disposeCache() {
-    _cachedPicture?.dispose();
-    _cachedPicture = null;
-    _lastSize = null;
-  }
+  final ui.Picture? cachedPicture;
+  final Size? lastSize;
+  final void Function(ui.Picture, Size) onCacheUpdate;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (_cachedPicture == null || _lastSize != size) {
-      _lastSize = size;
-      _cachedPicture?.dispose();
+    if (cachedPicture == null || lastSize != size) {
       final recorder = ui.PictureRecorder();
       final recordCanvas = Canvas(recorder);
 
@@ -323,14 +364,16 @@ class _VignettePainter extends CustomPainter {
           ..style = PaintingStyle.stroke,
       );
 
-      _cachedPicture = recorder.endRecording();
+      final picture = recorder.endRecording();
+      onCacheUpdate(picture, size);
+      canvas.drawPicture(picture);
+      return;
     }
 
-    if (_cachedPicture != null) {
-      canvas.drawPicture(_cachedPicture!);
-    }
+    canvas.drawPicture(cachedPicture!);
   }
 
   @override
-  bool shouldRepaint(covariant _VignettePainter oldDelegate) => false;
+  bool shouldRepaint(covariant _VignettePainter oldDelegate) =>
+      oldDelegate.lastSize != lastSize;
 }

@@ -652,84 +652,97 @@ class SkillTreeFooter extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F2EE),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: const Color(0xFFCCCCCC)),
-            ),
-            child: Text(
-              '$unlockedCount / ${kAllSkillNodes.length} NODES',
-              style: const TextStyle(
-                color: Color(0xFF666666),
-                fontSize: 10,
-                fontFamily: 'Bangers',
-                letterSpacing: 1,
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F2EE),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: const Color(0xFFCCCCCC)),
+                ),
+                child: Text(
+                  '$unlockedCount / ${kAllSkillNodes.length} NODES',
+                  style: const TextStyle(
+                    color: Color(0xFF666666),
+                    fontSize: 10,
+                    fontFamily: 'Bangers',
+                    letterSpacing: 1,
+                  ),
+                ),
               ),
             ),
           ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () async {
-              unawaited(HapticFeedback.mediumImpact());
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => ResetDialog(
-                  currentPaint: paint,
-                  resetCost: RemoteConfigService.instance.skillTreeResetPaint,
-                  onConfirm: () => Navigator.pop(ctx, true),
-                  onCancel: () => Navigator.pop(ctx, false),
-                ),
-              );
-              if (confirm == true && context.mounted) {
-                try {
-                  await ref
-                      .read(upgradeNotifierProvider.notifier)
-                      .resetSkillTree();
-                } catch (_) {}
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: paint >= RemoteConfigService.instance.skillTreeResetPaint
-                    ? const Color(0xFFFFEEEE)
-                    : const Color(0xFFF5F2EE),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color:
-                      paint >= RemoteConfigService.instance.skillTreeResetPaint
-                          ? const Color(0xFFFF3B30).withValues(alpha: 0.40)
-                          : const Color(0xFFCCCCCC),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.refresh,
-                    size: 12,
-                    color: paint >= 20
-                        ? const Color(0xFFFF3B30)
-                        : const Color(0xFFAAAAAA),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'RESET  ${RemoteConfigService.instance.skillTreeResetPaint}P',
-                    style: TextStyle(
-                      color: paint >=
-                              RemoteConfigService.instance.skillTreeResetPaint
-                          ? const Color(0xFFFF3B30)
-                          : const Color(0xFFAAAAAA),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      fontFamily: 'Bangers',
-                      letterSpacing: 1,
+          const SizedBox(width: 8),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: () async {
+                  unawaited(HapticFeedback.mediumImpact());
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => ResetDialog(
+                      currentPaint: paint,
+                      resetCost: RemoteConfigService.instance.skillTreeResetPaint,
+                      onConfirm: () => Navigator.pop(ctx, true),
+                      onCancel: () => Navigator.pop(ctx, false),
+                    ),
+                  );
+                  if (confirm == true && context.mounted) {
+                    try {
+                      await ref
+                          .read(upgradeNotifierProvider.notifier)
+                          .resetSkillTree();
+                    } catch (_) {}
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: paint >= RemoteConfigService.instance.skillTreeResetPaint
+                        ? const Color(0xFFFFEEEE)
+                        : const Color(0xFFF5F2EE),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color:
+                          paint >= RemoteConfigService.instance.skillTreeResetPaint
+                              ? const Color(0xFFFF3B30).withValues(alpha: 0.40)
+                              : const Color(0xFFCCCCCC),
                     ),
                   ),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.refresh,
+                        size: 12,
+                        color: paint >= 20
+                            ? const Color(0xFFFF3B30)
+                            : const Color(0xFFAAAAAA),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'RESET  ${RemoteConfigService.instance.skillTreeResetPaint}P',
+                        style: TextStyle(
+                          color: paint >=
+                                  RemoteConfigService.instance.skillTreeResetPaint
+                              ? const Color(0xFFFF3B30)
+                              : const Color(0xFFAAAAAA),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          fontFamily: 'Bangers',
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

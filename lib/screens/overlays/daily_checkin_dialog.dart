@@ -66,22 +66,31 @@ class DailyCheckInDialog extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.calendar_month,
-                            color: AppColors.comicRed, size: 28),
-                        SizedBox(width: 8),
-                        Text(
-                          'DAILY CHECK-IN',
-                          style: TextStyle(
-                            fontFamily: 'Bangers',
-                            color: AppColors.ink,
-                            fontSize: 24,
-                            letterSpacing: 2.0,
+                    const Expanded(
+                      child: Row(
+                        children: [
+                          Icon(Icons.calendar_month,
+                              color: AppColors.comicRed, size: 28),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'DAILY CHECK-IN',
+                                style: TextStyle(
+                                  fontFamily: 'Bangers',
+                                  color: AppColors.ink,
+                                  fontSize: 24,
+                                  letterSpacing: 2.0,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () {
                         ComicButton.playButtonSfx();
@@ -298,72 +307,80 @@ class DailyCheckInDialog extends ConsumerWidget {
               ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'DAY $day',
-            style: TextStyle(
-              fontFamily: 'Bangers',
-              color: isCurrentDay
-                  ? AppColors.ink
-                  : (isNextDayCanPreClaim
-                      ? AppColors.comicBlue
-                      : AppColors.sketchGray),
-              fontSize: 12,
-              letterSpacing: 1.0,
-            ),
-          ),
-          Icon(
-            isClaimed ? Icons.check_circle : iconData,
-            color: isClaimed ? AppColors.comicGreen : iconColor,
-            size: 24,
-          ),
-          Text(
-            reward.label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Bangers',
-              color: isClaimed ? AppColors.sketchGray : AppColors.ink,
-              fontSize: 10,
-              letterSpacing: 0.6,
-            ),
-          ),
-          if (isNextDayCanPreClaim)
-            GestureDetector(
-              onTap: () async {
-                ComicButton.playButtonSfx();
-                final ok = await notifier.claimTomorrowWithAd();
-                if (ok && context.mounted) {
-                  AudioService.instance.playSfx(SfxEvent.reward);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Tomorrow\'s Reward Pre-Claimed!')),
-                  );
-                }
-              },
-              child: Container(
-                margin: const EdgeInsets.only(top: 2),
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColors.comicBlue,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.ink, width: 1.5),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      offset: Offset(1, 1),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.ondemand_video,
-                  size: 13,
-                  color: Colors.white,
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'DAY $day',
+                style: TextStyle(
+                  fontFamily: 'Bangers',
+                  color: isCurrentDay
+                      ? AppColors.ink
+                      : (isNextDayCanPreClaim
+                          ? AppColors.comicBlue
+                          : AppColors.sketchGray),
+                  fontSize: 12,
+                  letterSpacing: 1.0,
                 ),
               ),
-            ),
-        ],
+              const SizedBox(height: 4),
+              Icon(
+                isClaimed ? Icons.check_circle : iconData,
+                color: isClaimed ? AppColors.comicGreen : iconColor,
+                size: 24,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                reward.label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Bangers',
+                  color: isClaimed ? AppColors.sketchGray : AppColors.ink,
+                  fontSize: 10,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              if (isNextDayCanPreClaim) ...[
+                const SizedBox(height: 4),
+                GestureDetector(
+                  onTap: () async {
+                    ComicButton.playButtonSfx();
+                    final ok = await notifier.claimTomorrowWithAd();
+                    if (ok && context.mounted) {
+                      AudioService.instance.playSfx(SfxEvent.reward);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Tomorrow\'s Reward Pre-Claimed!')),
+                      );
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.comicBlue,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.ink, width: 1.5),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          offset: Offset(1, 1),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.ondemand_video,
+                      size: 13,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

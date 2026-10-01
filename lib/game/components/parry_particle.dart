@@ -112,7 +112,9 @@ class _ParryFlash extends PositionComponent {
   @override
   void update(double dt) {
     _elapsed += dt;
-    if (_elapsed >= _duration) removeFromParent();
+    if (_elapsed >= _duration) {
+      if (isMounted) removeFromParent();
+    }
   }
 
   @override
@@ -175,7 +177,9 @@ class _ParryRing extends PositionComponent {
   @override
   void update(double dt) {
     _elapsed += dt;
-    if (_elapsed >= _duration) removeFromParent();
+    if (_elapsed >= _duration) {
+      if (isMounted) removeFromParent();
+    }
   }
 
   @override

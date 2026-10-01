@@ -25,55 +25,58 @@ class _VictoryOverlayState extends State<VictoryOverlay> {
       color: Colors.black.withValues(alpha: 0.85),
       child: SafeArea(
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'VICTORY',
-                style: TextStyle(
-                  fontFamily: 'Bangers',
-                  color: AppColors.pureWhite,
-                  fontSize: 72,
-                  letterSpacing: 8,
-                  shadows: [
-                    Shadow(color: Colors.black, offset: Offset(4, 4), blurRadius: 2),
-                  ],
-                ),
-              ).animate().scale(duration: 600.ms, curve: Curves.elasticOut).shimmer(delay: 800.ms, duration: 1.5.seconds),
-              
-              const SizedBox(height: 32),
-              
-              _RewardRow(
-                label: 'INK EARNED',
-                value: '+${widget.result.inkEarned}',
-                icon: Icons.water_drop,
-                color: Colors.cyanAccent,
-              ).animate().fadeIn(delay: 400.ms).slideX(begin: -0.2),
-              
-              _RewardRow(
-                label: 'PAINT EARNED',
-                value: '+${widget.result.paintEarned}',
-                icon: Icons.palette,
-                color: Colors.orangeAccent,
-              ).animate().fadeIn(delay: 600.ms).slideX(begin: -0.2),
-              
-              _RewardRow(
-                label: 'XP GAINED',
-                value: '+${widget.result.xpEarned}',
-                icon: Icons.trending_up,
-                color: Colors.greenAccent,
-              ).animate().fadeIn(delay: 800.ms).slideX(begin: -0.2),
-              
-              const SizedBox(height: 48),
-              
-              ComicButton(
-                label: 'CONTINUE',
-                style: PBStyle.white,
-                fontSize: 20,
-                padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 16),
-                onTap: widget.onContinue,
-              ).animate().fadeIn(delay: 1200.ms).scale(begin: const Offset(0.8, 0.8)),
-            ],
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'VICTORY',
+                  style: TextStyle(
+                    fontFamily: 'Bangers',
+                    color: AppColors.pureWhite,
+                    fontSize: 72,
+                    letterSpacing: 8,
+                    shadows: [
+                      Shadow(color: Colors.black, offset: Offset(4, 4), blurRadius: 2),
+                    ],
+                  ),
+                ).animate().scale(duration: 600.ms, curve: Curves.elasticOut).shimmer(delay: 800.ms, duration: 1.5.seconds),
+                
+                const SizedBox(height: 32),
+                
+                _RewardRow(
+                  label: 'INK EARNED',
+                  value: '+${widget.result.inkEarned}',
+                  icon: Icons.water_drop,
+                  color: Colors.cyanAccent,
+                ).animate().fadeIn(delay: 400.ms).slideX(begin: -0.2),
+                
+                _RewardRow(
+                  label: 'PAINT EARNED',
+                  value: '+${widget.result.paintEarned}',
+                  icon: Icons.palette,
+                  color: Colors.orangeAccent,
+                ).animate().fadeIn(delay: 600.ms).slideX(begin: -0.2),
+                
+                _RewardRow(
+                  label: 'XP GAINED',
+                  value: '+${widget.result.xpEarned}',
+                  icon: Icons.trending_up,
+                  color: Colors.greenAccent,
+                ).animate().fadeIn(delay: 800.ms).slideX(begin: -0.2),
+                
+                const SizedBox(height: 48),
+                
+                ComicButton(
+                  label: 'CONTINUE',
+                  style: PBStyle.white,
+                  fontSize: 20,
+                  padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 16),
+                  onTap: widget.onContinue,
+                ).animate().fadeIn(delay: 1200.ms).scale(begin: const Offset(0.8, 0.8)),
+              ],
+            ),
           ),
         ),
       ),
@@ -156,55 +159,58 @@ class _DefeatOverlayState extends State<DefeatOverlay> {
       color: const Color(0xDD1A1A1A),
       child: SafeArea(
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'DEFEAT',
-                style: TextStyle(
-                  fontFamily: 'Bangers',
-                  color: AppColors.pureWhite,
-                  fontSize: 72,
-                  letterSpacing: 6,
-                  shadows: [
-                    Shadow(color: Colors.black, offset: Offset(4, 4), blurRadius: 4),
-                  ],
-                ),
-              ).animate().fadeIn(duration: 800.ms).scale(begin: const Offset(1.2, 1.2), curve: Curves.easeOut),
-              
-              const SizedBox(height: 12),
-              
-              const SizedBox(height: 60),
-              
-              if (widget.reviveAvailable) ...[
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'DEFEAT',
+                  style: TextStyle(
+                    fontFamily: 'Bangers',
+                    color: AppColors.pureWhite,
+                    fontSize: 72,
+                    letterSpacing: 6,
+                    shadows: [
+                      Shadow(color: Colors.black, offset: Offset(4, 4), blurRadius: 4),
+                    ],
+                  ),
+                ).animate().fadeIn(duration: 800.ms).scale(begin: const Offset(1.2, 1.2), curve: Curves.easeOut),
+                
+                const SizedBox(height: 12),
+                
+                const SizedBox(height: 60),
+                
+                if (widget.reviveAvailable) ...[
+                  ComicButton(
+                    label: 'REVIVE (AD)',
+                    style: PBStyle.white,
+                    fontSize: 18,
+                    padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 14),
+                    onTap: widget.onRevive,
+                  ).animate().fadeIn(delay: 800.ms).slideY(begin: 0.2),
+                  const SizedBox(height: 20),
+                ],
+                
                 ComicButton(
-                  label: 'REVIVE (AD)',
+                  label: 'RESTART',
                   style: PBStyle.white,
                   fontSize: 18,
-                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 14),
-                  onTap: widget.onRevive,
-                ).animate().fadeIn(delay: 800.ms).slideY(begin: 0.2),
-                const SizedBox(height: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 56, vertical: 14),
+                  onTap: widget.onRestart,
+                ).animate().fadeIn(delay: 900.ms).slideY(begin: 0.2),
+                
+                const SizedBox(height: 16),
+                
+                ComicButton(
+                  label: 'QUIT',
+                  style: PBStyle.dark,
+                  fontSize: 18,
+                  padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 14),
+                  onTap: widget.onQuit,
+                ).animate().fadeIn(delay: 1100.ms).slideY(begin: 0.2),
               ],
-              
-              ComicButton(
-                label: 'RESTART',
-                style: PBStyle.white,
-                fontSize: 18,
-                padding: const EdgeInsets.symmetric(horizontal: 56, vertical: 14),
-                onTap: widget.onRestart,
-              ).animate().fadeIn(delay: 900.ms).slideY(begin: 0.2),
-              
-              const SizedBox(height: 16),
-              
-              ComicButton(
-                label: 'QUIT',
-                style: PBStyle.dark,
-                fontSize: 18,
-                padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 14),
-                onTap: widget.onQuit,
-              ).animate().fadeIn(delay: 1100.ms).slideY(begin: 0.2),
-            ],
+            ),
           ),
         ),
       ),

@@ -13,7 +13,7 @@ class AutoRemovingParticleComponent extends ParticleSystemComponent {
   void update(double dt) {
     super.update(dt);
     if (particle?.progress == null || particle!.progress >= 1.0) {
-      removeFromParent();
+      if (isMounted) removeFromParent();
     }
   }
 }

@@ -8,9 +8,11 @@ import 'package:colosynth/screens/tournament/tournament_logic.dart';
 import 'package:colosynth/screens/store/recruit_tab_screen.dart';
 import 'package:colosynth/screens/level/tier_chest_overlay.dart';
 import 'package:colosynth/screens/overlays/player_progress_overlay.dart';
+import 'package:colosynth/widgets/comic/comic_word_badge.dart';
 import 'package:colosynth/providers/tournament_provider.dart';
 import 'package:colosynth/providers/tier_chest_provider.dart';
 import 'package:colosynth/providers/shared_preferences_provider.dart';
+import 'package:colosynth/widgets/comic/zzz_extruded_banner.dart';
 
 class _MockTournamentProgressNotifier extends TournamentProgressNotifier {
   @override
@@ -172,9 +174,181 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
 
       expect(find.byType(PlayerProgressOverlay), findsOneWidget);
-      expect(find.text('LEVEL'), findsOneWidget);
-      expect(find.text('5'), findsWidgets);
+      expect(find.byType(ComicWordBadge), findsOneWidget);
+      expect(find.text('LV.5'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('renders pure digit roadmap and manga trapezoid milestone chip',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PlayerProgressOverlay(
+              level: 1,
+              xp: 50,
+              onDismiss: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      // Milestone digits should be displayed as pure numbers
+      expect(find.text('2'), findsWidgets);
+
+      // Verify trapezoid clip path is present for the milestone description box
+      expect(find.byType(ClipPath), findsWidgets);
+
+      // Verify initial selected milestone shows LEVEL 2 in the trapezoid card
+      expect(find.textContaining('LEVEL 2'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('show modal dialog has full dim barrierColor (0xD0000000)', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    PlayerProgressOverlay.show(context, level: 3, xp: 100);
+                  },
+                  child: const Text('SHOW'),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('SHOW'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      final modalBarrier =
+          tester.widget<ModalBarrier>(find.byType(ModalBarrier).last);
+      expect(modalBarrier.color, equals(const Color(0xD0000000)));
+
+      // Dismiss dialog
+      await tester.tap(find.byType(PlayerProgressOverlay));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets(
+        'renders ZZZ 3D extruded moving banner with ticker text and motion',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PlayerProgressOverlay(
+              level: 2,
+              xp: 80,
+              onDismiss: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      // Verify ZZZ banner ticker text exists
+      expect(find.textContaining('PLAYER ROADMAP'), findsWidgets);
+      expect(find.textContaining('LEVEL PROGRESSION'), findsWidgets);
+      expect(find.textContaining('MILESTONE ARCHIVE'), findsWidgets);
+
+      // Verify no exceptions thrown during fast-to-slow motion
+      await tester.pump(const Duration(milliseconds: 1000));
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('ZZZ Dual LED Banner Tests', () {
+    testWidgets('ZzzDualLedBanner renders both foreground LED and background ZZZ extruded text',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 360,
+              height: 44,
+              child: ZzzDualLedBanner(
+                label: 'INK SUPPLY',
+                ledColor: Colors.cyanAccent,
+                reverse: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.byType(ZzzDualLedBanner), findsOneWidget);
+      expect(find.byType(ZzzExtrudedText), findsWidgets);
+      expect(find.textContaining('INK SUPPLY'), findsWidgets);
+      expect(find.textContaining('COLOSYNTH SUPPLY'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('ZzzDualLedBanner supports reverse scrolling mode',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 360,
+              height: 44,
+              child: ZzzDualLedBanner(
+                label: 'PAINT SUPPLY',
+                ledColor: Colors.pinkAccent,
+                reverse: true,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.byType(ZzzDualLedBanner), findsOneWidget);
+      expect(find.textContaining('PAINT SUPPLY'), findsWidgets);
+      expect(find.textContaining('COLOSYNTH SUPPLY'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('ZzzExtrudedText builds solid isometric shadow stack',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: ZzzExtrudedText(
+              text: 'ZZZ TEST',
+              fontSize: 24,
+              depth: 4.0,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('ZZZ TEST'), findsOneWidget);
+      final textWidget = tester.widget<Text>(find.text('ZZZ TEST'));
+      expect(textWidget.style?.shadows, isNotEmpty);
+      expect(textWidget.style?.shadows?.length, equals(7)); // 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0
       expect(tester.takeException(), isNull);
     });
   });
 }
+
+

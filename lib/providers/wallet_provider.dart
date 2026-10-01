@@ -31,7 +31,7 @@ class WalletNotifier extends Notifier<WalletState> {
 
   bool canAfford(Currency type, int amount) => state.canAfford(type, amount);
 
-  Future<void> award(Currency type, int amount, {String source = 'unknown'}) async {
+  Future<void> award(Currency type, int amount, {String source = 'system_fallback'}) async {
     if (type == Currency.ink) {
       await ref.read(accountSaveNotifierProvider.notifier).awardInk(amount, source: source);
     } else {
@@ -39,7 +39,7 @@ class WalletNotifier extends Notifier<WalletState> {
     }
   }
 
-  Future<void> spend(Currency type, int amount, {String reason = 'unknown'}) async {
+  Future<void> spend(Currency type, int amount, {String reason = 'system_fallback'}) async {
     if (type == Currency.ink) {
       await ref.read(accountSaveNotifierProvider.notifier).spendInk(amount, reason: reason);
     } else {
@@ -47,7 +47,7 @@ class WalletNotifier extends Notifier<WalletState> {
     }
   }
 
-  Future<void> awardMultiple({int ink = 0, int paint = 0, String source = 'unknown'}) async {
+  Future<void> awardMultiple({int ink = 0, int paint = 0, String source = 'system_fallback'}) async {
     if (ink > 0) await award(Currency.ink, ink, source: source);
     if (paint > 0) await award(Currency.paint, paint, source: source);
   }

@@ -4,7 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:colosynth/providers/save_provider.dart';
-import 'package:colosynth/database/synth/synth_instance.dart';
+import 'package:colosynth/screens/overlays/synth_crate_opening_overlay.dart';
 import 'package:colosynth/screens/theme/tokens.dart';
 import 'package:colosynth/screens/overlays/locked_feature_overlay.dart';
 
@@ -111,37 +111,87 @@ class _SynthCrateSectionState extends ConsumerState<SynthCrateSection> {
   bool _opening = false;
 
   Future<void> _openCrate() async {
+    final keys = ref.read(synthKeysProvider);
+    if (keys <= 0) {
+      unawaited(LockedFeatureOverlay.show(
+        context,
+        customTitle: 'No Synth Keys',
+        customDescription:
+            'Clear tournament stages to earn keys and unlock powerful Synths!',
+        customConditionText: 'Clear Stages',
+        customEmoji: '🔑',
+      ));
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1C28),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFFFF6D00), width: 2.5),
+        ),
+        title: const Text(
+          'OPEN SYNTH CRATE',
+          style: TextStyle(
+            fontFamily: 'Bangers',
+            fontSize: 22,
+            letterSpacing: 2,
+            color: Color(0xFFFF6D00),
+          ),
+        ),
+        content: const Text(
+          'Spend 1 Synth Key to open Synth Crate?',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.white70,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(
+                fontFamily: 'Bangers',
+                fontSize: 15,
+                letterSpacing: 1.5,
+                color: Colors.white54,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6D00),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'CONFIRM',
+              style: TextStyle(
+                fontFamily: 'Bangers',
+                fontSize: 15,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
     if (_opening) return;
     setState(() => _opening = true);
     try {
-      final result =
-          await ref.read(ownedSynthInstancesProvider.notifier).openCrate();
-      if (mounted) {
-        setState(() {
-          _opening = false;
-        });
-        if (result == null) {
-          unawaited(LockedFeatureOverlay.show(
-            context,
-            customTitle: 'No Synth Keys',
-            customDescription: 'Clear tournament stages to earn keys and unlock powerful Synths!',
-            customConditionText: 'Clear Stages',
-            customEmoji: '🔑',
-          ));
-        } else {
-          _showResultDialog(result);
-        }
-      }
-    } catch (e) {
+      await SynthCrateOpeningOverlay.show(context);
+    } finally {
       if (mounted) setState(() => _opening = false);
     }
-  }
-
-  void _showResultDialog(({SynthInstance instance, bool isDuplicate}) result) {
-    showDialog<void>(
-      context: context,
-      builder: (_) => _CrateResultDialog(result: result),
-    );
   }
 
   Future<void> _buyKeyWithPaint() async {
@@ -338,8 +388,8 @@ class _PaintToKeyCard extends StatelessWidget {
               disabledBackgroundColor: Colors.grey.shade800,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               minimumSize: const Size(60, 32),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
+              shape: const StadiumBorder(
+                side: BorderSide(color: Color(0xFF1A1A1A), width: 1.5),
               ),
             ),
             child: const Text(
@@ -498,73 +548,3 @@ class _PurchaseCard extends StatelessWidget {
 }
 
 
-class _CrateResultDialog extends StatelessWidget {
-  const _CrateResultDialog({required this.result});
-  final ({SynthInstance instance, bool isDuplicate}) result;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDupe = result.isDuplicate;
-    return Dialog(
-      backgroundColor: const Color(0xFF1A0E00),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isDupe ? Icons.autorenew : Icons.auto_awesome,
-              color: isDupe ? const Color(0xFF00E5FF) : const Color(0xFFFF6D00),
-              size: 48,
-            )
-                .animate()
-                .scale(
-                  begin: const Offset(0, 0),
-                  duration: 400.ms,
-                  curve: Curves.elasticOut,
-                )
-                .fadeIn(duration: 200.ms),
-            const SizedBox(height: 16),
-            Text(
-              isDupe ? 'DUPLICATE!' : 'NEW SYNTH!',
-              style: TextStyle(
-                fontFamily: 'Bangers',
-                fontSize: 24,
-                letterSpacing: 4,
-                color: isDupe
-                    ? const Color(0xFF00E5FF)
-                    : const Color(0xFFFF6D00),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isDupe
-                  ? 'Converted to\n1× exp_note_legendary'
-                  : 'Added to your Synth collection!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.white.withValues(alpha: 0.70),
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 24),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'CLOSE',
-                style: TextStyle(
-                  fontFamily: 'Bangers',
-                  color: Colors.white54,
-                  fontSize: 14,
-                  letterSpacing: 2,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
