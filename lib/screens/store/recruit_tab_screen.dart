@@ -348,10 +348,34 @@ class _SurroundCardCarouselState extends State<_SurroundCardCarousel>
   double _snapFrom = 0;
   double _snapTo = 0;
 
+  Timer? _idle3dTimer;
+  bool _showCenter3d = false;
+
+  void _scheduleIdle3d() {
+    _idle3dTimer?.cancel();
+    _idle3dTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _showCenter3d = true;
+        });
+      }
+    });
+  }
+
+  void _interrupt3d() {
+    _idle3dTimer?.cancel();
+    if (_showCenter3d) {
+      setState(() {
+        _showCenter3d = false;
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _scroll = widget.selectedIndex.toDouble();
+    _scheduleIdle3d();
     _snapCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 320),
@@ -376,6 +400,7 @@ class _SurroundCardCarouselState extends State<_SurroundCardCarousel>
               widget.onSelectCharacter(normIdx);
             }
           }
+          _scheduleIdle3d();
         }
       });
   }
@@ -384,6 +409,7 @@ class _SurroundCardCarouselState extends State<_SurroundCardCarousel>
   void didUpdateWidget(covariant _SurroundCardCarousel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selectedIndex != widget.selectedIndex) {
+      _interrupt3d();
       final total = widget.characters.length;
       if (total > 0) {
         final currentNorm = (_scroll.round() % total + total) % total;
@@ -396,11 +422,13 @@ class _SurroundCardCarouselState extends State<_SurroundCardCarousel>
 
   @override
   void dispose() {
+    _idle3dTimer?.cancel();
     _snapCtrl.dispose();
     super.dispose();
   }
 
   void _animateTo(double targetIndex) {
+    _interrupt3d();
     final total = widget.characters.length;
     if (total == 0) return;
 
@@ -461,6 +489,7 @@ class _SurroundCardCarouselState extends State<_SurroundCardCarousel>
           behavior: HitTestBehavior.opaque,
           onPanUpdate: (d) {
             _snapCtrl.stop();
+            _interrupt3d();
             final deltaScroll = -d.delta.dx / stepX;
             setState(() {
               _scroll = _scroll + deltaScroll;
@@ -502,6 +531,7 @@ class _SurroundCardCarouselState extends State<_SurroundCardCarousel>
                     rarityColor: widget.rarityColor(c.rarity),
                     width: cardWidth,
                     height: cardHeight,
+                    show3d: _showCenter3d,
                     onTap: () {
                       if (e.index != widget.selectedIndex) {
                         _animateTo(e.index.toDouble());
@@ -549,6 +579,7 @@ class _SurroundCharacterCard extends StatelessWidget {
     required this.rarityColor,
     required this.width,
     required this.height,
+    required this.show3d,
     required this.onTap,
   });
 
@@ -558,22 +589,24 @@ class _SurroundCharacterCard extends StatelessWidget {
   final Color rarityColor;
   final double width;
   final double height;
+  final bool show3d;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final absD = delta.abs();
-    final isCenter = absD < 0.45;
-    final has3dModel = CharacterModelRegistry.hasModel(character.id);
+    final isCenter = absD < 0.35;
+    final has3dModel = CharacterModelRegistry.canRender3d(character.id);
+    final render3d = isCenter && show3d && has3dModel;
 
-    // 3D perspective transformation (vigorous/aggressive trapezoid edge inequality):
-    // delta > 0 => card to the right => right edge LENGTHENS!
-    // delta < 0 => card to the left  => left edge LENGTHENS!
-    // delta = 0 => center card       => flat normal rectangle!
+    // 3D perspective transformation:
+    // When 3D model is active on the settled center card, use flat identity to prevent WebView matrix distortion
     final angle = (delta * 0.45).clamp(-0.75, 0.75);
-    final transform = Matrix4.identity()
-      ..setEntry(3, 2, 0.0028) // vigorous perspective foreshortening
-      ..rotateY(angle);
+    final transform = render3d
+        ? Matrix4.identity()
+        : (Matrix4.identity()
+          ..setEntry(3, 2, 0.0028) // vigorous perspective foreshortening
+          ..rotateY(angle));
 
     final depthScale = (1.0 - absD * 0.04).clamp(0.85, 1.0);
     final opacity = (1.0 - (absD - 1.2).clamp(0.0, 1.5) * 0.35).clamp(0.40, 1.0);
@@ -693,7 +726,7 @@ class _SurroundCharacterCard extends StatelessWidget {
                       bottom: 44,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 6),
-                        child: (isCenter && has3dModel)
+                        child: render3d
                             ? IgnorePointer(
                                 ignoring: true,
                                 child: CharacterModelViewer(

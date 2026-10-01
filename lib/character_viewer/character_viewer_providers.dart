@@ -60,3 +60,33 @@ final characterViewer3dModeProvider =
     NotifierProvider<CharacterViewer3dModeNotifier, bool>(
   CharacterViewer3dModeNotifier.new,
 );
+
+class ArenaShow3dModelNotifier extends Notifier<bool> {
+  static const _kPrefKey = 'colosynth_arena_show_3d_model';
+
+  @override
+  bool build() {
+    _loadFromSp();
+    return true;
+  }
+
+  Future<void> _loadFromSp() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool(_kPrefKey) ?? true;
+  }
+
+  Future<void> setShow3d(bool show) async {
+    state = show;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kPrefKey, show);
+  }
+
+  Future<void> toggle() async {
+    await setShow3d(!state);
+  }
+}
+
+final arenaShow3dModelProvider =
+    NotifierProvider<ArenaShow3dModelNotifier, bool>(
+  ArenaShow3dModelNotifier.new,
+);

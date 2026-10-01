@@ -213,7 +213,11 @@ class _CharacterRouletteWheelState extends State<CharacterRouletteWheel>
           return Stack(
             clipBehavior: Clip.none,
             children: [
-              Positioned.fill(
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 256,
+                width: constraints.maxWidth * 0.42,
                 child: GestureDetector(
                   behavior: HitTestBehavior.translucent,
                   onPanUpdate: _onPanUpdate,

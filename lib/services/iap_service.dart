@@ -132,7 +132,10 @@ class IapService {
       }
 
       final ids = _allProductIds;
-      final fetched = await Purchases.getProducts(ids);
+      final fetched = await Purchases.getProducts(
+        ids,
+        productCategory: ProductCategory.nonSubscription,
+      );
       for (final p in fetched) {
         _products[p.identifier] = p;
       }
@@ -200,10 +203,23 @@ class IapService {
 
     try {
       if (!_products.containsKey(productId)) await _loadProducts();
+      var product = _products[productId];
 
-      final product = _products[productId];
       if (product == null) {
-        return IapError('Product "$productId" not found.');
+        try {
+          final direct = await Purchases.getProducts(
+            [productId],
+            productCategory: ProductCategory.nonSubscription,
+          );
+          if (direct.isNotEmpty) {
+            _products[productId] = direct.first;
+            product = direct.first;
+          }
+        } catch (_) {}
+      }
+
+      if (product == null) {
+        return IapError('Product "$productId" not found in store catalog.');
       }
 
       await Purchases.purchase(PurchaseParams.storeProduct(product));

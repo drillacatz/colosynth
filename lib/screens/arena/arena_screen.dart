@@ -12,6 +12,7 @@ import 'package:colosynth/screens/overlays/daily_checkin_dialog.dart';
 import 'package:colosynth/screens/theme/tokens.dart';
 import 'package:colosynth/providers/account_provider.dart';
 import 'package:colosynth/character_viewer/character_model_viewer.dart';
+import 'package:colosynth/character_viewer/character_viewer_providers.dart';
 import 'package:colosynth/screens/arena/arena_entry_panel.dart';
 
 class ArenaScreen extends ConsumerWidget {
@@ -22,6 +23,7 @@ class ArenaScreen extends ConsumerWidget {
     final playerLevel = ref.watch(accountLevelProvider).accountLevel;
     final svc = ProgressionService.instance;
     final equippedCharId = ref.watch(equippedCharacterIdProvider);
+    final show3dModel = ref.watch(arenaShow3dModelProvider);
 
     final dailyTasksUnlocked =
         svc.isUnlocked(UnlockableFeature.dailyTasksUnlocked, playerLevel);
@@ -37,19 +39,35 @@ class ArenaScreen extends ConsumerWidget {
 
     return Stack(
       children: [
-        Positioned(
-          top: 100,
-          left: 0,
-          right: 0,
-          height: 310,
-          child: CharacterModelViewer(
-            characterId: equippedCharId,
-            height: 300,
-            allowUserControl: true,
-            autoRotate: true,
-            showActionBar: false,
+        if (show3dModel)
+          Positioned(
+            top: 100,
+            left: 0,
+            right: 0,
+            height: 310,
+            child: CharacterModelViewer(
+              characterId: equippedCharId,
+              height: 300,
+              allowUserControl: true,
+              autoRotate: true,
+              showActionBar: false,
+            ),
           ),
-        ),
+        Positioned(
+          top: 120,
+          left: 16,
+          child: ComicSquareBtn(
+            icon: show3dModel ? Icons.view_in_ar : Icons.hide_source,
+            onTap: () {
+              ComicButton.playButtonSfx();
+              ref.read(arenaShow3dModelProvider.notifier).toggle();
+            },
+          ),
+        ).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideY(
+              begin: 0.2,
+              end: 0,
+              curve: Curves.easeOutCubic,
+            ),
         Positioned(
           top: 120,
           right: 16,

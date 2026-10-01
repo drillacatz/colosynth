@@ -84,3 +84,7 @@ GoogleService-Info.plist
 *.pkcs12
 *service-account*.json
 *credentials*.json
+
+# Scratch Root Models
+/base.glb
+

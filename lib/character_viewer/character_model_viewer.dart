@@ -78,9 +78,9 @@ class _CharacterModelViewerState extends ConsumerState<CharacterModelViewer> {
     final asset = CharacterModelRegistry.resolve(widget.characterId);
     final currentAnim = ref.watch(characterAnimationProvider(widget.characterId));
 
-    final isBundled = CharacterModelRegistry.isModelBundled(widget.characterId);
+    final canRender = CharacterModelRegistry.canRender3d(widget.characterId);
     final isTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
-    if (asset == null || _hasError || !isBundled || isTest) {
+    if (asset == null || _hasError || !canRender || isTest) {
       return _build2DFallback();
     }
 

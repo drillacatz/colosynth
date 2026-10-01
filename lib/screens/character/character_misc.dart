@@ -14,32 +14,34 @@ class CharacterArtBackdrop extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final size = MediaQuery.of(context).size;
     final is3dMode = ref.watch(characterViewer3dModeProvider);
-    final has3dModel = CharacterModelRegistry.isModelBundled(character.id);
+    final has3dModel = CharacterModelRegistry.canRender3d(character.id);
 
-    Widget art;
-    if (is3dMode && has3dModel) {
-      art = CharacterModelViewer(
-        characterId: character.id,
-        height: size.height * 0.50,
-        allowUserControl: true,
-        autoRotate: true,
-        showActionBar: true,
-      );
-    } else {
-      art = character.fullBodyAsset != null
-          ? Image.asset(
-              character.fullBodyAsset!,
-              fit: BoxFit.contain,
-              alignment: Alignment.bottomCenter,
-              errorBuilder: (_, __, ___) =>
-                  CharacterPlaceholder(character: character),
-            )
-          : CharacterPlaceholder(character: character);
-    }
-
-    return art;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        Widget art;
+        if (is3dMode && has3dModel) {
+          art = CharacterModelViewer(
+            characterId: character.id,
+            height: constraints.maxHeight,
+            allowUserControl: true,
+            autoRotate: true,
+            showActionBar: true,
+          );
+        } else {
+          art = character.fullBodyAsset != null
+              ? Image.asset(
+                  character.fullBodyAsset!,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.bottomCenter,
+                  errorBuilder: (_, __, ___) =>
+                      CharacterPlaceholder(character: character),
+                )
+              : CharacterPlaceholder(character: character);
+        }
+        return art;
+      },
+    );
   }
 }
 

@@ -59,23 +59,45 @@ class CharacterModelRegistry {
     ),
   };
 
-  /// Set of models that are physically bundled on disk in assets/models/.
-  static const Set<String> bundledModels = {'arthur'};
+  /// Fallback GLB model path used when a specific character model is not yet bundled.
+  static const String fallbackGlbPath = 'assets/models/base.glb';
 
-  /// Resolve character ID to 3D asset entry if available.
+  /// Set of models that are physically bundled on disk in assets/models/.
+  static const Set<String> bundledModels = {'arthur', 'base'};
+
+  /// Resolve character ID to 3D asset entry if available, falling back to base.glb if not bundled.
   static CharacterModelAsset? resolve(String characterId) {
     final key = characterId.toLowerCase().replaceAll('char_', '');
-    return _assets[key] ?? _assets[characterId];
+    final entry = _assets[key] ?? _assets[characterId];
+    if (entry == null) return null;
+
+    if (!bundledModels.contains(key)) {
+      return CharacterModelAsset(
+        characterId: entry.characterId,
+        glbPath: fallbackGlbPath,
+        posterPath: entry.posterPath,
+        cameraOrbit: entry.cameraOrbit,
+        fieldOfView: entry.fieldOfView,
+        availableAnimations: entry.availableAnimations,
+      );
+    }
+    return entry;
   }
 
   /// Check if character ID has a mapped 3D model asset definition.
   static bool hasModel(String characterId) {
-    return resolve(characterId) != null;
+    final key = characterId.toLowerCase().replaceAll('char_', '');
+    return _assets.containsKey(key) || _assets.containsKey(characterId);
   }
 
-  /// Check if character ID has a 3D model asset physically bundled and ready to render.
+  /// Check if character ID has a unique dedicated 3D model asset physically bundled.
   static bool isModelBundled(String characterId) {
     final key = characterId.toLowerCase().replaceAll('char_', '');
-    return bundledModels.contains(key);
+    return bundledModels.contains(key) && key != 'base';
+  }
+
+  /// Check if a 3D model can be rendered for this character (either dedicated or via base.glb fallback).
+  static bool canRender3d(String characterId) {
+    return hasModel(characterId);
   }
 }

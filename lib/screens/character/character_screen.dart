@@ -88,9 +88,9 @@ class _CharacterScreenState extends ConsumerState<CharacterScreen> {
       children: [
         Positioned(
           left: 0,
-          top: 156,
-          width: size.width * 0.66,
-          bottom: 0,
+          top: 112,
+          width: size.width * 0.68,
+          bottom: 260,
           child: RepaintBoundary(child: CharacterArtBackdrop(character: selected)),
         ),
         Positioned(
